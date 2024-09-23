@@ -86,7 +86,7 @@
 <body>
     <h2>Cryptocurrency Order Book Visualization (CoinAPI)</h2>
     
-    <!-- Input for Symbol, Min/Max Price, and Price Interval -->
+    <!-- Input for Symbol, Min/Max Price, Price Interval, and Minimum Size -->
     <div class="controls">
         <label for="symbol">Symbol (e.g., BTC_USDT):</label>
         <input type="text" id="symbol" value="BTC_USDT">
@@ -99,6 +99,9 @@
         
         <label for="priceInterval">Price Interval:</label>
         <input type="number" id="priceInterval" value="100">
+        
+        <label for="minSize">Min Size:</label>
+        <input type="number" id="minSize" value="0.1">
 
         <button onclick="updateOrderBookPlot()">Update Plot</button>
     </div>
@@ -133,10 +136,10 @@
             return Math.round(price / interval) * interval;
         }
 
-        // Group order book data by price intervals with min and max price filtering
-        function groupOrderBookData(orderBookData, priceInterval, minPrice, maxPrice) {
-            const bids = orderBookData.bids.filter(entry => entry.price >= minPrice && entry.price <= maxPrice);
-            const asks = orderBookData.asks.filter(entry => entry.price >= minPrice && entry.price <= maxPrice);
+        // Group order book data by price intervals with min/max price and min size filtering
+        function groupOrderBookData(orderBookData, priceInterval, minPrice, maxPrice, minSize) {
+            const bids = orderBookData.bids.filter(entry => entry.price >= minPrice && entry.price <= maxPrice && entry.size >= minSize);
+            const asks = orderBookData.asks.filter(entry => entry.price >= minPrice && entry.price <= maxPrice && entry.size >= minSize);
 
             // Process bid and ask prices
             const bidPrices = bids.map(entry => roundPrice(entry.price, priceInterval));
@@ -153,9 +156,10 @@
             const minPrice = parseFloat(document.getElementById('minPrice').value);
             const maxPrice = parseFloat(document.getElementById('maxPrice').value);
             const priceInterval = parseFloat(document.getElementById('priceInterval').value);
+            const minSize = parseFloat(document.getElementById('minSize').value);
 
             const orderBookData = await fetchOrderBookData(symbol);
-            const groupedData = groupOrderBookData(orderBookData, priceInterval, minPrice, maxPrice);
+            const groupedData = groupOrderBookData(orderBookData, priceInterval, minPrice, maxPrice, minSize);
 
             // Prepare the data for Plotly
             const bidTrace = {
@@ -183,9 +187,6 @@
 
             Plotly.newPlot('orderBookPlot', [bidTrace, askTrace], layout);
         }
-
-        // Call the function to update the plot when the page loads
-        updateOrderBookPlot();
     </script>
 </body>
 </html>
