@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Position Size Calculator</title>
+    <style>
+      /* General Reset */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* Dark Theme */
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        height: 100vh;
+        background-color: #1e1e1e;
+        color: #f5f5f5;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+
+      h1 {
+        margin-bottom: 30px;
+        font-size: 2rem;
+        color: #fff;
+      }
+
+      #calculator {
+        padding: 25px;
+        background-color: #2a2a2a;
+        border-radius: 12px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        text-align: center;
+        width: 350px;
+      }
+
+      .property {
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      label {
+        font-size: 1rem;
+        flex: 1;
+        text-align: left;
+        color: #f5f5f5;
+      }
+
+      input[type='number'] {
+        flex: 1;
+        padding: 8px;
+        font-size: 1rem;
+        border-radius: 5px;
+        border: 1px solid #444;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+      }
+
+      input[type='button'] {
+        padding: 10px 20px;
+        font-size: 1rem;
+        border: none;
+        border-radius: 5px;
+        background-color: #00b894;
+        color: white;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+
+      input[type='button']:hover {
+        background-color: #019874;
+      }
+
+      #result {
+        margin-top: 20px;
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #00cec9;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 500px) {
+        #calculator {
+          width: 90%;
+          padding: 20px;
+        }
+
+        h1 {
+          font-size: 1.5rem;
+        }
+
+        input[type='button'] {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Position Size Calculator</h1>
+
+    <div id="calculator">
+      <div class="property">
+        <label id="balance-label" for="balance-input">Balance</label>
+        <input
+          type="number"
+          id="balance-input"
+          name="balance-input"
+          value="1000"
+          required
+        />
+      </div>
+
+      <div class="property">
+        <label id="risk-label" for="risk-input">Risk (%)</label>
+        <input
+          type="number"
+          id="risk-input"
+          name="risk-input"
+          value="1"
+          required
+        />
+      </div>
+
+      <div class="property">
+        <label id="price-enter-label" for="price-enter-input"
+          >Prix d'entrée</label
+        >
+        <input
+          type="number"
+          id="price-enter-input"
+          name="price-enter-input"
+          value="0"
+          required
+        />
+      </div>
+
+      <div class="property">
+        <label id="price-exit-label" for="price-exit-input"
+          >Prix du Stop Loss</label
+        >
+        <input
+          type="number"
+          id="price-exit-input"
+          name="price-exit-input"
+          value="0"
+          required
+        />
+      </div>
+
+      <input type="button" id="button" value="Calculer" />
+    </div>
+
+    <p id="result"></p>
+
+    <script>
+      window.addEventListener('load', function () {
+        var balance, riskPercent, enterPrice, exitPrice;
+
+        function initValues() {
+          balance = parseFloat(document.getElementById('balance-input').value);
+          riskPercent = parseFloat(document.getElementById('risk-input').value);
+          enterPrice = parseFloat(document.getElementById('price-enter-input').value);
+          exitPrice = parseFloat(document.getElementById('price-exit-input').value);
+        }
+
+        var button = document.getElementById('button');
+        var result = document.getElementById('result');
+
+        button.addEventListener('click', function () {
+          initValues();
+
+          var risk = balance * (riskPercent / 100);
+          var exitPercent = Math.abs(exitPrice - enterPrice) / enterPrice;
+          var size = risk / exitPercent / enterPrice;
+
+          if (!isNaN(size)) {
+            result.textContent = `Il faut prendre ${size.toFixed(2)} jeton(s) pour risquer ${risk.toFixed(2)}$.`;
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

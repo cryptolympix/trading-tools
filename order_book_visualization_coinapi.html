@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Book Visualization</title>
+    <!-- Include Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        /* Dark Theme Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1e1e2f;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h2 {
+            color: #e5e5e5;
+            margin-top: 20px;
+        }
+
+        /* Form Styling */
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .controls label {
+            font-weight: bold;
+            margin-right: 10px;
+            color: #bbb;
+        }
+
+        .controls input[type="text"],
+        .controls input[type="number"] {
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 5px;
+            background-color: #2e2e3e;
+            color: #fff;
+            width: 150px;
+        }
+
+        .controls button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #ff6f61;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .controls button:hover {
+            background-color: #ff4f41;
+        }
+
+        /* Plot Container Styling */
+        #orderBookPlot {
+            width: 80%;
+            height: 600px;
+            background-color: #2e2e3e;
+            border: 1px solid #444;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            margin-bottom: 40px;
+        }
+
+        /* Input Focus Styling */
+        input:focus {
+            outline: none;
+            border-color: #ff6f61;
+        }
+    </style>
+</head>
+<body>
+    <h2>Cryptocurrency Order Book Visualization (CoinAPI)</h2>
+    
+    <!-- Input for Symbol, Min/Max Price, and Price Interval -->
+    <div class="controls">
+        <label for="symbol">Symbol (e.g., BTC_USDT):</label>
+        <input type="text" id="symbol" value="BTC_USDT">
+
+        <label for="minPrice">Min Price:</label>
+        <input type="number" id="minPrice" value="0">
+        
+        <label for="maxPrice">Max Price:</label>
+        <input type="number" id="maxPrice" value="100000">
+        
+        <label for="priceInterval">Price Interval:</label>
+        <input type="number" id="priceInterval" value="100">
+
+        <button onclick="updateOrderBookPlot()">Update Plot</button>
+    </div>
+
+    <!-- Container for the plot -->
+    <div id="orderBookPlot"></div>
+
+    <script>
+        // CoinAPI settings
+        const API_KEY = '0950e2c6-3cc3-47bc-881b-899387b0b122';  // Replace with your API key
+
+        // Fetch order book data from CoinAPI
+        async function fetchOrderBookData(symbol) {
+            const symbol_id = 'BINANCE_SPOT_' + symbol;  // Adjust symbol to CoinAPI format
+            const url = `https://rest.coinapi.io/v1/orderbooks/${symbol_id}/current`;
+            const headers = { 'X-CoinAPI-Key': API_KEY };
+            
+            try {
+                const response = await fetch(url, { headers });
+                if (!response.ok) {
+                    throw new Error('Failed to fetch order book data');
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error fetching order book data:', error);
+            }
+        }
+
+        // Function to round price to nearest interval
+        function roundPrice(price, interval) {
+            return Math.round(price / interval) * interval;
+        }
+
+        // Group order book data by price intervals with min and max price filtering
+        function groupOrderBookData(orderBookData, priceInterval, minPrice, maxPrice) {
+            const bids = orderBookData.bids.filter(entry => entry.price >= minPrice && entry.price <= maxPrice);
+            const asks = orderBookData.asks.filter(entry => entry.price >= minPrice && entry.price <= maxPrice);
+
+            // Process bid and ask prices
+            const bidPrices = bids.map(entry => roundPrice(entry.price, priceInterval));
+            const bidSizes = bids.map(entry => entry.size);
+            const askPrices = asks.map(entry => roundPrice(entry.price, priceInterval));
+            const askSizes = asks.map(entry => entry.size);
+
+            return { bidPrices, bidSizes, askPrices, askSizes };
+        }
+
+        // Function to update the plot with the fetched data
+        async function updateOrderBookPlot() {
+            const symbol = document.getElementById('symbol').value;
+            const minPrice = parseFloat(document.getElementById('minPrice').value);
+            const maxPrice = parseFloat(document.getElementById('maxPrice').value);
+            const priceInterval = parseFloat(document.getElementById('priceInterval').value);
+
+            const orderBookData = await fetchOrderBookData(symbol);
+            const groupedData = groupOrderBookData(orderBookData, priceInterval, minPrice, maxPrice);
+
+            // Prepare the data for Plotly
+            const bidTrace = {
+                x: groupedData.bidPrices,
+                y: groupedData.bidSizes,
+                type: 'bar',
+                name: 'Bids',
+                marker: { color: 'green' }
+            };
+
+            const askTrace = {
+                x: groupedData.askPrices,
+                y: groupedData.askSizes,
+                type: 'bar',
+                name: 'Asks',
+                marker: { color: 'red' }
+            };
+
+            const layout = {
+                title: `Order Book Depth for ${symbol}`,
+                barmode: 'overlay',
+                xaxis: { title: 'Price' },
+                yaxis: { title: 'Size' }
+            };
+
+            Plotly.newPlot('orderBookPlot', [bidTrace, askTrace], layout);
+        }
+
+        // Call the function to update the plot when the page loads
+        updateOrderBookPlot();
+    </script>
+</body>
+</html>
