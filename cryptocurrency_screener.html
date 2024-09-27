@@ -97,54 +97,68 @@
 
         async function fetchData() {
             const selectedAsset = assetSelect.value; // Capture selected asset
-
+        
             // If the selected asset is the same as the previous one, return early
             if (selectedAsset === previousAsset) return;
-
+        
             screenerBody.innerHTML = ''; // Clear previous results
             previousAsset = selectedAsset; // Update previous asset
             tableData = []; // Clear previous data
-
+        
             console.log("Selected Asset:", selectedAsset); // Debugging line
-
+        
             try {
-                const response = await fetch('https://api.binance.com/api/v3/exchangeInfo');
-                const data = await response.json();
+                // Fetch exchange info to get price precision for each symbol
+                const exchangeInfoResponse = await fetch('https://api.binance.com/api/v3/exchangeInfo');
+                const exchangeInfo = await exchangeInfoResponse.json();
                 
-                const symbols = data.symbols
-                    .filter(s => s.status === 'TRADING' && 
-                        (selectedAsset ? s.symbol.endsWith(selectedAsset) : true))
-                    .map(s => s.symbol);
-
+                const symbols = exchangeInfo.symbols
+                .filter(s => s.status === 'TRADING' && 
+                    (selectedAsset ? s.symbol.endsWith(selectedAsset) : true))
+                .map(s => {
+                    return {
+                        symbol: s.symbol,
+                        pricePrecision: s.baseAssetPrecision // Fetch price precision for the symbol
+                    };
+                });
+        
                 console.log("Filtered Symbols:", symbols); // Debugging line
-
-                const promises = symbols.map(symbol => 
-                    fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1w`)
+        
+                const promises = symbols.map(symbolInfo => 
+                    fetch(`https://api.binance.com/api/v3/klines?symbol=${symbolInfo.symbol}&interval=1w`)
                         .then(res => res.json())
                         .then(klines => {
                             const closePrices = klines.map(k => parseFloat(k[4])); // Closing prices
                             const volume = klines.map(k => parseFloat(k[5])); // Volume
-
                             const currentPrice = closePrices[closePrices.length - 1];
+                            
                             const ath = Math.max(...closePrices);
                             const drawdown = ((ath - currentPrice) / ath) * 100; // Drawdown from ATH
                             const performanceWeek = ((currentPrice - closePrices[closePrices.length - 2]) / closePrices[closePrices.length - 2]) * 100;
                             const performanceMonth = ((currentPrice - closePrices[closePrices.length - 5]) / closePrices[closePrices.length - 5]) * 100;
-
+        
                             // Sum the volume for the last week and calculate volume in USD
                             const totalVolumeWeek = volume.slice(-1)[0]; // Most recent week's volume
                             const volumeInUSD = totalVolumeWeek * currentPrice; // Multiply by the most recent price
-
+        
                             const rsi = calculateRSI(closePrices, 14); // RSI calculation
-
-                            return { symbol, currentPrice, rsi, drawdown, performanceWeek, performanceMonth, volumeInUSD };
+        
+                            return { 
+                                symbol: symbolInfo.symbol, 
+                                currentPrice,
+                                rsi, 
+                                drawdown, 
+                                performanceWeek, 
+                                performanceMonth, 
+                                volumeInUSD 
+                            };
                         })
                 );
-
+        
                 // Wait for all promises to resolve
                 const results = await Promise.all(promises);
                 tableData = results; // Store data for sorting
-
+        
                 // Add rows to the table for all results
                 results.forEach(data => {
                     addRow(data.symbol, data.currentPrice, data.rsi, data.drawdown, data.performanceWeek, data.performanceMonth, data.volumeInUSD);
@@ -152,7 +166,7 @@
             } catch (error) {
                 console.error('Error fetching data:', error);
             }
-        }
+        }        
 
         function filterTable() {
             const query = searchInput.value.toLowerCase();
@@ -203,7 +217,7 @@
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${symbol}</td>
-                <td>${currentPrice.toFixed(2)}</td>
+                <td>${currentPrice}</td>
                 <td class="${rsi < 30 ? 'rsi-low' : rsi > 70 ? 'rsi-high' : ''}">${rsi.toFixed(2)}</td>
                 <td>${drawdown.toFixed(2)}</td>
                 <td class="${performanceWeek > 0 ? 'positive' : 'negative'}">${performanceWeek.toFixed(2)}</td>
