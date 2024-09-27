@@ -118,7 +118,6 @@
 
                 console.log("Filtered Symbols:", symbols); // Debugging line
 
-                // Prepare an array to hold all promises
                 const promises = symbols.map(symbol => 
                     fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1w`)
                         .then(res => res.json())
@@ -132,12 +131,13 @@
                             const performanceWeek = ((currentPrice - closePrices[closePrices.length - 2]) / closePrices[closePrices.length - 2]) * 100;
                             const performanceMonth = ((currentPrice - closePrices[closePrices.length - 5]) / closePrices[closePrices.length - 5]) * 100;
 
-                            // Calculate total volume in USD for the last week
-                            const volumeWeek = volume.slice(-1)[0]; // Use the most recent week's volume
+                            // Sum the volume for the last week and calculate volume in USD
+                            const totalVolumeWeek = volume.slice(-1)[0]; // Most recent week's volume
+                            const volumeInUSD = totalVolumeWeek * currentPrice; // Multiply by the most recent price
 
                             const rsi = calculateRSI(closePrices, 14); // RSI calculation
 
-                            return { symbol, currentPrice, rsi, drawdown, performanceWeek, performanceMonth, volumeWeek };
+                            return { symbol, currentPrice, rsi, drawdown, performanceWeek, performanceMonth, volumeInUSD };
                         })
                 );
 
@@ -147,7 +147,7 @@
 
                 // Add rows to the table for all results
                 results.forEach(data => {
-                    addRow(data.symbol, data.currentPrice, data.rsi, data.drawdown, data.performanceWeek, data.performanceMonth, data.volumeWeek);
+                    addRow(data.symbol, data.currentPrice, data.rsi, data.drawdown, data.performanceWeek, data.performanceMonth, data.volumeInUSD);
                 });
             } catch (error) {
                 console.error('Error fetching data:', error);
@@ -187,7 +187,19 @@
             return 100 - (100 / (1 + rs));
         }
 
-        function addRow(symbol, currentPrice, rsi, drawdown, performanceWeek, performanceMonth, volumeWeek) {
+        function abbreviateVolume(value) {
+            if (value >= 1.0e9) {
+                return (value / 1.0e9).toFixed(2) + ' B'; // Billions
+            } else if (value >= 1.0e6) {
+                return (value / 1.0e6).toFixed(2) + ' M'; // Millions
+            } else if (value >= 1.0e3) {
+                return (value / 1.0e3).toFixed(2) + ' K'; // Thousands
+            } else {
+                return value.toFixed(2); // Less than thousand
+            }
+        }
+        
+        function addRow(symbol, currentPrice, rsi, drawdown, performanceWeek, performanceMonth, volumeInUSD) {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${symbol}</td>
@@ -196,7 +208,7 @@
                 <td>${drawdown.toFixed(2)}</td>
                 <td class="${performanceWeek > 0 ? 'positive' : 'negative'}">${performanceWeek.toFixed(2)}</td>
                 <td class="${performanceMonth > 0 ? 'positive' : 'negative'}">${performanceMonth.toFixed(2)}</td>
-                <td>${volumeWeek.toFixed(2)}</td>
+                <td>${abbreviateVolume(volumeInUSD)}</td>
             `;
             screenerBody.appendChild(row);
         }
