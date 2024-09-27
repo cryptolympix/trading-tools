@@ -231,7 +231,7 @@
             // Clear current rows and re-add sorted rows
             screenerBody.innerHTML = '';
             sortedData.forEach(data => {
-                addRow(data.symbol, data.currentPrice, data.rsi, data.drawdown, data.performanceWeek, data.performanceMonth, data.volumeWeek);
+                addRow(data.symbol, data.currentPrice, data.rsi, data.drawdown, data.performanceWeek, data.performanceMonth, data.volumeInUSD);
             });
         }
     </script>
