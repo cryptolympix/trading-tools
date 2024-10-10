@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Single TradingView Chart</title>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #tradingview-widget {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="tradingview-widget"></div>
+    </div>
+
+    <script type="text/javascript">
+        // Default configuration if no saved config exists
+        const defaultConfig = {
+            "symbol": "BINANCE:BTCUSDT", // Default or saved symbol
+            "interval": "4H", // Default or saved interval
+            "theme": "dark", // Default or saved theme
+            "studies": ["STD;RSI"], // Default or saved studies
+            "watchlist": ["BINANCE:BTCUSDT", "BINANCE:ETHUSDT"], // Default or saved watchlist
+        };
+
+        // Initialize TradingView widget with saved or default configuration
+        const tvWidget = new TradingView.widget({
+            "container_id": "tradingview-widget",
+            "autosize": true,
+            "symbol": defaultConfig.symbol,
+            "interval": defaultConfig.interval,
+            "timezone": "Etc/UTC",
+            "showSymbolLogo": true,
+            "theme": defaultConfig.theme,
+            "style": "1",
+            "locale": "en",
+            "toolbar_bg": "#f1f3f6",
+            "enable_publishing": true,
+            "allow_symbol_change": true,
+            "watchlist": defaultConfig.watchlist,
+            "studies": defaultConfig.studies,
+            "hide_side_toolbar": false,
+            "details": true,
+            "calendar": true,
+            "support_host": "https://www.tradingview.com"
+        });
+    </script>
+</body>
+</html>
