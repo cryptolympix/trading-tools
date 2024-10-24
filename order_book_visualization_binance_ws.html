@@ -94,6 +94,8 @@
         let ws = null;
         let bids = {};  // Store bids as price: size pairs
         let asks = {};  // Store asks as price: size pairs
+        let lastUpdateId = null;  // To keep track of the last update ID
+        let bufferedEvents = [];   // Buffer for incoming events
 
         // Group orders based on the price interval
         function roundPrice(price, interval) {
@@ -173,6 +175,71 @@
             Plotly.newPlot('orderBookPlot', [bidTrace, askTrace], layout);
         }
 
+        // WebSocket to handle real-time order book updates
+        function connectWebSocket(symbol) {
+            ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol}@depth@100ms`);
+
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                bufferedEvents.push(message);  // Buffer the events
+                processBufferedEvents(); // Process events in the buffer
+            };
+
+            ws.onclose = () => {
+                console.log("WebSocket connection closed. Attempting to reconnect...");
+                setTimeout(() => connectWebSocket(symbol), 1000);  // Attempt to reconnect
+            };
+        
+            ws.onerror = (error) => {
+                console.error("WebSocket error observed:", error);
+                ws.close(); // Close the WebSocket connection on error
+            };
+        }
+
+        // Process buffered events
+        function processBufferedEvents() {
+            while (bufferedEvents.length > 0) {
+                const event = bufferedEvents.shift();  // Get the first event
+                if (lastUpdateId !== null) {
+                    if (event.u <= lastUpdateId) {
+                        continue;  // Skip events with u <= lastUpdateId
+                    }
+                    if (event.U > lastUpdateId + 1) {
+                        console.log("Event out of order, need to fetch snapshot again");
+                        return;
+                    }
+                }
+                
+                // Update local order book with the event
+                updateOrderBook(event);
+            }
+        }
+
+        // Update local order book with the received event
+        function updateOrderBook(event) {
+            lastUpdateId = event.u;  // Update lastUpdateId
+
+            // Update bids
+            event.b.forEach(([price, size]) => {
+                if (parseFloat(size) === 0) {
+                    delete bids[parseFloat(price)];
+                } else {
+                    bids[parseFloat(price)] = parseFloat(size);
+                }
+            });
+
+            // Update asks
+            event.a.forEach(([price, size]) => {
+                if (parseFloat(size) === 0) {
+                    delete asks[parseFloat(price)];
+                } else {
+                    asks[parseFloat(price)] = parseFloat(size);
+                }
+            });
+
+            updatePlot();  // Update the plot with the new data
+        }
+
         // Function to be called when the user clicks "Update Plot"
         function updateOrderBookPlot() {
             if (ws) {
@@ -181,56 +248,11 @@
 
             bids = {};  // Reset bids
             asks = {};  // Reset asks
+            lastUpdateId = null; // Reset lastUpdateId
+            bufferedEvents = []; // Reset buffered events
 
             const symbol = document.getElementById('symbol').value;
-            fetchInitialOrderBook(symbol.toUpperCase());
             connectWebSocket(symbol);
-        }
-
-        // Fetch initial order book snapshot from REST API
-        async function fetchInitialOrderBook(symbol) {
-            const url = `https://api.binance.com/api/v3/depth?symbol=${symbol.toUpperCase()}&limit=100`;
-            const response = await fetch(url);
-            const data = await response.json();
-            // Initialize bids and asks
-            data.bids.forEach(([price, size]) => bids[parseFloat(price)] = parseFloat(size));
-            data.asks.forEach(([price, size]) => asks[parseFloat(price)] = parseFloat(size));
-
-            updatePlot();
-        }
-
-        // WebSocket to handle real-time order book updates
-        function connectWebSocket(symbol) {
-            ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol}@depth@100ms`);
-
-            ws.onmessage = (event) => {
-                const message = JSON.parse(event.data);
-
-                // Update bids
-                message.b.forEach(([price, size]) => {
-                    if (parseFloat(size) == 0) {
-                        delete bids[parseFloat(price)];  // Remove if size is 0
-                    } else {
-                        bids[parseFloat(price)] = parseFloat(size);
-                    }
-                });
-
-                // Update asks
-                message.a.forEach(([price, size]) => {
-                    if (parseFloat(size) == 0) {
-                        delete asks[parseFloat(price)];  // Remove if size is 0
-                    } else {
-                        asks[parseFloat(price)] = parseFloat(size);
-                    }
-                });
-
-                updatePlot();  // Update the chart with new data
-            };
-
-            ws.onclose = () => {
-                console.log("WebSocket connection closed. Reconnecting...");
-                setTimeout(() => connectWebSocket(symbol), 1000);  // Reconnect on close
-            };
         }
     </script>
 </body>
