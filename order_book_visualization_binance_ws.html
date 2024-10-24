@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binance WebSocket Order Book Visualization</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        /* Dark Theme Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1e1e2f;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h2 {
+            color: #e5e5e5;
+            margin-top: 20px;
+        }
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+        .controls label {
+            font-weight: bold;
+            margin-right: 10px;
+            color: #bbb;
+        }
+        .controls input[type="text"],
+        .controls input[type="number"] {
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 5px;
+            background-color: #2e2e3e;
+            color: #fff;
+            width: 150px;
+        }
+        .controls button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #ff6f61;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .controls button:hover {
+            background-color: #ff4f41;
+        }
+        #orderBookPlot {
+            width: 80%;
+            height: 600px;
+            background-color: #2e2e3e;
+            border: 1px solid #444;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            margin-bottom: 40px;
+            margin-top: 40px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #ff6f61;
+        }
+    </style>
+</head>
+<body>
+    <h2>Binance WebSocket Order Book</h2>
+
+    <!-- Controls for symbol selection and price range -->
+    <div class="controls">
+        <label for="symbol">Enter Symbol (e.g., btcusdt):</label>
+        <input type="text" id="symbol" value="btcusdt">
+        <label for="minPrice">Min Price:</label>
+        <input type="number" id="minPrice" value="0">
+        <label for="maxPrice">Max Price:</label>
+        <input type="number" id="maxPrice" value="0">
+        <label for="priceInterval">Price Interval:</label>
+        <input type="number" id="priceInterval" value="0">
+        <button onclick="updateOrderBookPlot()">Update Plot</button>
+    </div>
+
+    <div id="orderBookPlot"></div>
+
+    <script>
+        let ws = null;
+        let bids = {};  // Store bids as price: size pairs
+        let asks = {};  // Store asks as price: size pairs
+
+        // Group orders based on the price interval
+        function roundPrice(price, interval) {
+            return Math.round(price / interval) * interval;
+        }
+
+        // Update the plot with the filtered and grouped data
+        function updatePlot() {
+            const minPrice = parseFloat(document.getElementById('minPrice').value);
+            const maxPrice = parseFloat(document.getElementById('maxPrice').value);
+            const priceInterval = parseFloat(document.getElementById('priceInterval').value);
+
+            // Filter and group bids
+            const groupedBids = {};
+            Object.keys(bids).forEach(price => {
+                const roundedPrice = roundPrice(price, priceInterval);
+                if (roundedPrice >= minPrice && roundedPrice <= maxPrice) {
+                    groupedBids[roundedPrice] = (groupedBids[roundedPrice] || 0) + bids[price];
+                }
+            });
+
+            // Filter and group asks
+            const groupedAsks = {};
+            Object.keys(asks).forEach(price => {
+                const roundedPrice = roundPrice(price, priceInterval);
+                if (roundedPrice >= minPrice && roundedPrice <= maxPrice) {
+                    groupedAsks[roundedPrice] = (groupedAsks[roundedPrice] || 0) + asks[price];
+                }
+            });
+
+            // Prepare data for plotting
+            const bidPrices = Object.keys(groupedBids).map(Number).sort((a, b) => b - a);
+            const bidSizes = bidPrices.map(price => groupedBids[price]);
+
+            const askPrices = Object.keys(groupedAsks).map(Number).sort((a, b) => a - b);
+            const askSizes = askPrices.map(price => groupedAsks[price]);
+
+            // Plotly traces
+            const bidTrace = {
+                x: bidPrices,
+                y: bidSizes,
+                type: 'bar',
+                name: 'Bids',
+                marker: { color: 'green' }
+            };
+
+            const askTrace = {
+                x: askPrices,
+                y: askSizes,
+                type: 'bar',
+                name: 'Asks',
+                marker: { color: 'red' }
+            };
+
+            // Layout configuration
+            const layout = {
+                title: `Order Book Depth for ${document.getElementById('symbol').value.toUpperCase()}`,
+                barmode: 'overlay',
+                xaxis: { 
+                    title: 'Price',
+                    tickcolor: "#888",  // Darker ticks
+                    gridcolor: "#444"   // Darker grid lines
+                },
+                yaxis: { 
+                    title: 'Size',
+                    tickcolor: "#888",  // Darker ticks
+                    gridcolor: "#444"   // Darker grid lines
+                },
+                plot_bgcolor: "#2e2e3e",  // Dark background for the plot
+                paper_bgcolor: "#1e1e2f", // Dark background for the entire paper
+                font: {
+                    color: "#f5f5f5"     // Light font color for text
+                }
+            };
+
+            // Plot the data
+            Plotly.newPlot('orderBookPlot', [bidTrace, askTrace], layout);
+        }
+
+        // Function to be called when the user clicks "Update Plot"
+        function updateOrderBookPlot() {
+            if (ws) {
+                ws.close(); // Close the previous WebSocket connection
+            }
+
+            bids = {};  // Reset bids
+            asks = {};  // Reset asks
+
+            const symbol = document.getElementById('symbol').value;
+            fetchInitialOrderBook(symbol.toUpperCase());
+            connectWebSocket(symbol);
+        }
+
+        // Fetch initial order book snapshot from REST API
+        async function fetchInitialOrderBook(symbol) {
+            const url = `https://api.binance.com/api/v3/depth?symbol=${symbol.toUpperCase()}&limit=100`;
+            const response = await fetch(url);
+            const data = await response.json();
+            // Initialize bids and asks
+            data.bids.forEach(([price, size]) => bids[parseFloat(price)] = parseFloat(size));
+            data.asks.forEach(([price, size]) => asks[parseFloat(price)] = parseFloat(size));
+
+            updatePlot();
+        }
+
+        // WebSocket to handle real-time order book updates
+        function connectWebSocket(symbol) {
+            ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol}@depth@100ms`);
+
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+
+                // Update bids
+                message.b.forEach(([price, size]) => {
+                    if (parseFloat(size) == 0) {
+                        delete bids[parseFloat(price)];  // Remove if size is 0
+                    } else {
+                        bids[parseFloat(price)] = parseFloat(size);
+                    }
+                });
+
+                // Update asks
+                message.a.forEach(([price, size]) => {
+                    if (parseFloat(size) == 0) {
+                        delete asks[parseFloat(price)];  // Remove if size is 0
+                    } else {
+                        asks[parseFloat(price)] = parseFloat(size);
+                    }
+                });
+
+                updatePlot();  // Update the chart with new data
+            };
+
+            ws.onclose = () => {
+                console.log("WebSocket connection closed. Reconnecting...");
+                setTimeout(() => connectWebSocket(symbol), 1000);  // Reconnect on close
+            };
+        }
+    </script>
+</body>
+</html>
