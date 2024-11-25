@@ -24,6 +24,7 @@
         background-color: #1e1e1e;
         color: #ffffff;
         border: 1px solid #333333;
+        width: 250px;
       }
       button {
         padding: 10px 20px;
@@ -63,6 +64,22 @@
   <body>
     <h1>Simulateur d'imposition des cryptomonnaies</h1>
     <form id="taxSimulator">
+      <label for="total_investment">Investissement initial (€) :</label>
+      <input
+        type="number"
+        id="total_investment"
+        placeholder="Entrez votre investissement initial"
+        required
+      />
+
+      <label for="total_portfolio">Valeur du portefeuille (€) :</label>
+      <input
+        type="number"
+        id="total_portfolio"
+        placeholder="Entrez votre valeur totale de portefeuille"
+        required
+      />
+
       <label for="gain">Plus-value réalisée (€) :</label>
       <input type="number" id="gain" placeholder="Entrez votre gain" required />
 
@@ -140,6 +157,12 @@
 
       function calculateTax() {
         // Récupération des données
+        const totalInvestment = parseFloat(
+          document.getElementById("total_investment").value
+        );
+        const totalPortfolio = parseFloat(
+          document.getElementById("total_portfolio").value
+        );
         const gain = parseFloat(document.getElementById("gain").value);
         const flatTaxRate = parseFloat(
           document.getElementById("flatTax").value
@@ -155,7 +178,9 @@
         }
 
         // Calcul Flat Tax
-        const flatTax = (flatTaxRate / 100) * gain;
+        const flatTax =
+          (gain - totalInvestment * (gain / totalPortfolio)) *
+          (flatTaxRate / 100);
         const flatTaxPercentage = (flatTax / gain) * 100;
 
         // Calcul Barème progressif
