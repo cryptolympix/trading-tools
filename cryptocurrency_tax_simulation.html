@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simulateur d'imposition cryptomonnaies</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #121212;
+        color: #ffffff;
+      }
+      label {
+        display: block;
+        margin-top: 10px;
+      }
+      input,
+      select {
+        padding: 5px;
+        margin-top: 5px;
+        background-color: #1e1e1e;
+        color: #ffffff;
+        border: 1px solid #333333;
+      }
+      button {
+        padding: 10px 20px;
+        margin-top: 15px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      .result {
+        margin-top: 20px;
+        padding: 15px;
+        border: 1px solid #333333;
+        background: #1e1e1e;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        background-color: #1e1e1e;
+        color: #ffffff;
+      }
+      th,
+      td {
+        border: 1px solid #333333;
+        padding: 10px;
+        text-align: center;
+      }
+      th {
+        background-color: #333333;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Simulateur d'imposition des cryptomonnaies</h1>
+    <form id="taxSimulator">
+      <label for="gain">Plus-value réalisée (€) :</label>
+      <input type="number" id="gain" placeholder="Entrez votre gain" required />
+
+      <label for="flatTax"
+        >Flat tax (Prélèvement unique forfaitaire) (%) :</label
+      >
+      <input type="number" id="flatTax" value="30" required />
+
+      <label for="socialTax">Taux des prélèvements sociaux (%) :</label>
+      <input type="number" id="socialTax" value="17.2" required />
+
+      <button type="button" onclick="calculateTax()">Calculer</button>
+    </form>
+
+    <div>
+      <h2>Grille des taux d'imposition sur le revenu</h2>
+      <table id="taxTable">
+        <thead>
+          <tr>
+            <th>Tranche de revenu (€)</th>
+            <th>Taux d'imposition (%)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="result" id="result">
+      Remplissez les informations ci-dessus et cliquez sur "Calculer".
+    </div>
+
+    <script>
+      const imposableGridTaxRate = [
+        { min: 0, max: 11294, rate: 0 },
+        { min: 11294, max: 28797, rate: 11 },
+        { min: 28797, max: 82341, rate: 30 },
+        { min: 82342, max: 177106, rate: 41 },
+        { min: 177106, max: Infinity, rate: 45 },
+      ];
+
+      // Populate the income tax table
+      function populateTaxTable() {
+        const tableBody = document.querySelector("#taxTable tbody");
+        tableBody.innerHTML = ""; // Clear the table first
+        imposableGridTaxRate.forEach((grid) => {
+          const row = document.createElement("tr");
+          const range =
+            grid.max === Infinity
+              ? `${grid.min} et plus`
+              : `${grid.min} - ${grid.max}`;
+          row.innerHTML = `
+            <td>${range}</td>
+            <td>${grid.rate} %</td>
+          `;
+          tableBody.appendChild(row);
+        });
+      }
+
+      function calculateIncomeTaxRate(gain) {
+        let totalProgressiveTax = 0;
+        let remainingImposableGain = gain;
+        for (const grid of imposableGridTaxRate) {
+          const taxableAmount = Math.min(
+            grid.max - grid.min,
+            remainingImposableGain
+          );
+          totalProgressiveTax += (grid.rate / 100) * taxableAmount;
+          remainingImposableGain -= taxableAmount;
+          if (remainingImposableGain <= 0) {
+            break;
+          }
+        }
+        return totalProgressiveTax;
+      }
+
+      function calculateTax() {
+        // Récupération des données
+        const gain = parseFloat(document.getElementById("gain").value);
+        const flatTaxRate = parseFloat(
+          document.getElementById("flatTax").value
+        );
+        const socialTaxRate = parseFloat(
+          document.getElementById("socialTax").value
+        );
+
+        if (isNaN(gain) || gain <= 0) {
+          document.getElementById("result").innerHTML =
+            "Veuillez entrer une plus-value valide.";
+          return;
+        }
+
+        // Calcul Flat Tax
+        const flatTax = (flatTaxRate / 100) * gain;
+        const flatTaxPercentage = (flatTax / gain) * 100;
+
+        // Calcul Barème progressif
+        const incomeTax = calculateIncomeTaxRate(gain);
+        const socialTax = (socialTaxRate / 100) * gain;
+        const totalProgressiveTax = incomeTax + socialTax;
+        const progressiveTaxPercentage = (totalProgressiveTax / gain) * 100;
+
+        // Affichage des résultats
+        document.getElementById("result").innerHTML = `
+        <h2>Résultats :</h2>
+        <p><strong>Plus-value :</strong> ${gain.toFixed(2)} €</p>
+        <p><strong>Imposition via Flat Tax :</strong> ${flatTax.toFixed(
+          2
+        )} € (${flatTaxPercentage.toFixed(2)}%)</p>
+        <p><strong>Imposition via Barème Progressif :</strong></p>
+        <ul>
+          <li>Impôt sur le revenu : ${incomeTax.toFixed(2)} €</li>
+          <li>Prélèvements sociaux (${socialTaxRate}%) : ${socialTax.toFixed(
+          2
+        )} €</li>
+          <li><strong>Total :</strong> ${totalProgressiveTax.toFixed(
+            2
+          )} € (${progressiveTaxPercentage.toFixed(2)}%)</li>
+        </ul>
+        <p><strong>Conclusion :</strong> ${
+          flatTax < totalProgressiveTax
+            ? "La Flat Tax est plus avantageuse."
+            : "Le Barème Progressif est plus avantageux."
+        }</p>
+      `;
+      }
+
+      // Initialize the tax table on page load
+      window.onload = populateTaxTable;
+    </script>
+  </body>
+</html>
