@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crypto Tools</title>
+    <style>
+      /* Make the body and html fill the viewport */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: Arial, sans-serif;
+        background-color: #121212;
+        color: #ffffff;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Header styling */
+      header {
+        text-align: center;
+        padding: 20px;
+        background-color: #1e1e1e;
+        border-bottom: 2px solid #333333;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 2.5em;
+        color: #00bcd4;
+      }
+
+      /* Main content styling */
+      main {
+        flex: 1; /* Allows the main section to expand and push the footer down */
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .tool-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        list-style: none;
+        padding: 0;
+      }
+      .tool-item {
+        background-color: #1e1e1e;
+        padding: 20px;
+        border: 1px solid #333333;
+        border-radius: 8px;
+        text-align: center;
+        transition: transform 0.2s, background-color 0.2s;
+      }
+      .tool-item:hover {
+        transform: scale(1.05);
+        background-color: #333333;
+      }
+      .tool-item a {
+        text-decoration: none;
+        color: #00bcd4;
+        font-size: 1.2em;
+      }
+      .tool-item a:hover {
+        text-decoration: underline;
+      }
+
+      /* Footer styling */
+      footer {
+        text-align: center;
+        padding: 20px;
+        background-color: #1e1e1e;
+        border-top: 2px solid #333333;
+        color: #777777;
+      }
+      footer a {
+        color: #00bcd4;
+        text-decoration: none;
+      }
+      footer a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Crypto Tools</h1>
+    </header>
+    <main>
+      <ul class="tool-list">
+        <li class="tool-item">
+          <a href="./cryptocurrency_tax_simulation.html"
+            >Crypto Tax Simulator</a
+          >
+        </li>
+        <li class="tool-item">
+          <a href="./cryptocurrency_screener.html">Crypto Screener</a>
+        </li>
+        <li class="tool-item">
+          <a href="./order_book_visualization_binance_ws.html"
+            >Order Book Visualization</a
+          >
+        </li>
+        <li class="tool-item">
+          <a href="./position_size_calculator.html">Position Size Calculator</a>
+        </li>
+        <li class="tool-item">
+          <a href="./trading_strategy_simulation.html"
+            >Trading Strategy Simulation</a
+          >
+        </li>
+        <li class="tool-item">
+          <a href="./trading_view_single_screen.html"
+            >Trading View (Single Screen)</a
+          >
+        </li>
+        <li class="tool-item">
+          <a href="./trading_view_dual_screens.html"
+            >Trading View (Dual Screens)</a
+          >
+        </li>
+      </ul>
+    </main>
+    <footer>
+      <p>
+        Made with ❤️ by
+        <a href="https://x.com/Cryptolympix" target="_blank">Cryptolympix</a>
+      </p>
+    </footer>
+  </body>
+</html>
