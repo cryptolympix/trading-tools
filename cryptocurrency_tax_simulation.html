@@ -112,19 +112,19 @@
     </div>
 
     <script>
-      const imposableGridTaxRate = [
+      const PROGRESSIVE_TAX_RATES = [
         { min: 0, max: 11294, rate: 0 },
-        { min: 11294, max: 28797, rate: 11 },
-        { min: 28797, max: 82341, rate: 30 },
-        { min: 82342, max: 177106, rate: 41 },
-        { min: 177106, max: Infinity, rate: 45 },
+        { min: 11294, max: 28797, rate: 0.11 },
+        { min: 28797, max: 82341, rate: 0.3 },
+        { min: 82342, max: 177106, rate: 0.41 },
+        { min: 177106, max: Infinity, rate: 0.45 },
       ];
 
       // Populate the income tax table
       function populateTaxTable() {
         const tableBody = document.querySelector("#taxTable tbody");
         tableBody.innerHTML = ""; // Clear the table first
-        imposableGridTaxRate.forEach((grid) => {
+        PROGRESSIVE_TAX_RATES.forEach((grid) => {
           const row = document.createElement("tr");
           const range =
             grid.max === Infinity
@@ -138,21 +138,18 @@
         });
       }
 
-      function calculateIncomeTaxRate(gain) {
-        let totalProgressiveTax = 0;
-        let remainingImposableGain = gain;
-        for (const grid of imposableGridTaxRate) {
-          const taxableAmount = Math.min(
-            grid.max - grid.min,
-            remainingImposableGain
-          );
-          totalProgressiveTax += (grid.rate / 100) * taxableAmount;
-          remainingImposableGain -= taxableAmount;
-          if (remainingImposableGain <= 0) {
-            break;
+      function calculateIR(gain) {
+        let tax = 0;
+        for (const bracket of PROGRESSIVE_TAX_RATES) {
+          if (gain > bracket.min) {
+            const taxableAmount = Math.min(
+              bracket.max - bracket.min,
+              gain - bracket.min
+            );
+            tax += taxableAmount * bracket.rate;
           }
         }
-        return totalProgressiveTax;
+        return tax;
       }
 
       function calculateTax() {
@@ -183,8 +180,8 @@
           (flatTaxRate / 100);
         const flatTaxPercentage = (flatTax / gain) * 100;
 
-        // Calcul Barème progressif
-        const incomeTax = calculateIncomeTaxRate(gain);
+        // Calcul Barème Progressif
+        const incomeTax = calculateIR(gain);
         const socialTax = (socialTaxRate / 100) * gain;
         const totalProgressiveTax = incomeTax + socialTax;
         const progressiveTaxPercentage = (totalProgressiveTax / gain) * 100;
