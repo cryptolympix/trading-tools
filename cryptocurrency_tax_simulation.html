@@ -132,7 +132,7 @@
               : `${grid.min} - ${grid.max}`;
           row.innerHTML = `
             <td>${range}</td>
-            <td>${grid.rate} %</td>
+            <td>${grid.rate * 100} %</td>
           `;
           tableBody.appendChild(row);
         });
