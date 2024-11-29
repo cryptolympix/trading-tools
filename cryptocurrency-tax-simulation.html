@@ -141,6 +141,11 @@
         { min: 177106, max: Infinity, rate: 0.45 },
       ];
 
+      // https://www.economie.gouv.fr/particuliers/decote-impot-revenu
+      const DECOTE_APPLICATION_THRESHOLD = [1929, 3191]; // The threshold for applying decote for 1 and 2 parts
+      const DECOTE_MAX = [873, 1444]; // The max decote amount for 1 and 2 parts
+      const DECOTE_PERCENTAGE = 0.4525; // The percentage of the decote
+
       // Populate the income tax table
       function populateTaxTable() {
         const tableBody = document.querySelector("#taxTable tbody");
@@ -183,6 +188,25 @@
         return (gain - totalInvestment * (gain / totalPortfolio)) * flatTaxRate;
       }
 
+      function calculateDecote(tax, familyQuotient = 1) {
+        const decoteThreshold =
+          familyQuotient == 1
+            ? DECOTE_APPLICATION_THRESHOLD[0]
+            : DECOTE_APPLICATION_THRESHOLD[1];
+
+        const decoteMax = familyQuotient == 1 ? DECOTE_MAX[0] : DECOTE_MAX[1];
+
+        if (tax <= decoteThreshold) {
+          let decote = decoteMax - tax * DECOTE_PERCENTAGE;
+          if (tax - decote > 0) {
+            return decoteMax - tax * DECOTE_PERCENTAGE;
+          } else {
+            return tax;
+          }
+        }
+        return 0;
+      }
+
       function displayResult() {
         // Récupération des données
         const totalInvestment = parseFloat(
@@ -222,8 +246,10 @@
 
         // Calcul Barème Progressif
         const incomeTax = calculateIR(gain);
+        const decote = calculateDecote(incomeTax);
+        const incomeTaxWithDecote = incomeTax - decote;
         const socialTax = (socialTaxRate / 100) * gain;
-        const totalProgressiveTax = incomeTax + socialTax;
+        const totalProgressiveTax = incomeTaxWithDecote + socialTax;
         const progressiveTaxPercentage = (totalProgressiveTax / gain) * 100;
 
         // Affichage des résultats
@@ -236,6 +262,7 @@
         <p><strong>Imposition via Barème Progressif :</strong></p>
         <ul>
           <li>Impôt sur le revenu : ${incomeTax.toFixed(0)} €</li>
+          <li>Décote : ${decote.toFixed(0)} €</li>
           <li>Prélèvements sociaux (${socialTaxRate}%) : ${socialTax.toFixed(
           0
         )} €</li>
