@@ -112,7 +112,7 @@
       <label for="socialTax">Taux des prélèvements sociaux (%) :</label>
       <input type="number" id="socialTax" value="17.2" required />
 
-      <button type="button" onclick="calculateTax()">Calculer</button>
+      <button type="button" onclick="displayResult()">Calculer</button>
     </form>
 
     <div id="result">
@@ -173,7 +173,17 @@
         return tax;
       }
 
-      function calculateTax() {
+      function calculateFlatTax(
+        totalInvestment,
+        totalPortfolio,
+        gain,
+        flatTaxRate
+      ) {
+        // Calcul Flat Tax
+        return (gain - totalInvestment * (gain / totalPortfolio)) * flatTaxRate;
+      }
+
+      function displayResult() {
         // Récupération des données
         const totalInvestment = parseFloat(
           document.getElementById("total_investment").value
@@ -189,16 +199,25 @@
           document.getElementById("socialTax").value
         );
 
-        if (isNaN(gain) || gain <= 0) {
+        if (
+          isNaN(totalInvestment) ||
+          isNaN(totalPortfolio) ||
+          isNaN(gain) ||
+          isNaN(flatTaxRate) ||
+          isNaN(socialTaxRate)
+        ) {
           document.getElementById("result").innerHTML =
             "Veuillez entrer une plus-value valide.";
           return;
         }
 
         // Calcul Flat Tax
-        const flatTax =
-          (gain - totalInvestment * (gain / totalPortfolio)) *
-          (flatTaxRate / 100);
+        const flatTax = calculateFlatTax(
+          totalInvestment,
+          totalPortfolio,
+          gain,
+          flatTaxRate / 100
+        );
         const flatTaxPercentage = (flatTax / gain) * 100;
 
         // Calcul Barème Progressif
