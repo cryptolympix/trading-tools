@@ -235,7 +235,7 @@
           <li>Impôt sur le Revenu : ${incomeTaxWithtoutRealizedCessionsAfterDecote.toFixed(
             0
           )} €</li>
-          <li><strong>Total :</strong> ${(
+          <li><strong>Imposition totale :</strong> ${(
             flatTax + incomeTaxWithtoutRealizedCessionsAfterDecote
           ).toFixed(0)} € (${
           (
@@ -243,20 +243,25 @@
             totalIncome
           ).toFixed(2) * 100
         }%)</li>
+        <li><strong>Revenu après impôt :</strong> ${(
+          totalIncome - totalTaxWithPFU
+        ).toFixed(0)} €</li>
         </ul>
 
         <p><strong>Imposition avec le Barème Progressif :</strong></p>
         <ul>
           <li>Impôt sur le Revenu : ${incomeTaxWithIR.toFixed(0)} €</li>
           <li>Prélèvements sociaux  : ${socialTaxWithIR.toFixed(0)} €</li>
-          <li><strong>Total :</strong> ${(
+          <li><strong>Imposition totale :</strong> ${(
             incomeTaxWithIR + socialTaxWithIR
           ).toFixed(0)} € (${
           ((incomeTaxWithIR + socialTaxWithIR) / totalIncome).toFixed(2) * 100
         }%)</li>
+        <li><strong>Revenu après impôt :</strong> ${(
+          totalIncome - totalTaxWithIR
+        ).toFixed(0)} €</li>
         </ul>
         
-
         <p><strong>Conclusion :</strong> ${
           totalTaxWithPFU < totalTaxWithIR
             ? "L'imposition avec la Flat Tax est plus avantageuse."
