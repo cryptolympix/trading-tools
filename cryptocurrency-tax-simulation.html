@@ -31,7 +31,8 @@
       label {
         width: 100%;
         display: block;
-        margin-top: 10px;
+        margin-top: 20px;
+        margin-bottom: 5px;
       }
       input,
       select {
@@ -45,7 +46,8 @@
       }
       button {
         padding: 10px 20px;
-        margin-top: 15px;
+        margin-top: 20px;
+        margin-bottom: 20px;
         background-color: #007bff;
         color: white;
         border: none;
@@ -95,22 +97,44 @@
         required
       />
 
-      <label for="total_portfolio">Valeur du portefeuille (€) :</label>
+      <label for="total_portfolio">Valeur du portefeuille crypto (€) :</label>
       <input
         type="number"
         id="total_portfolio"
-        placeholder="Entrez votre valeur totale de portefeuille"
+        placeholder="Entrez la valeur de votre portefeuille crypto"
         required
       />
 
-      <label for="gain">Plus-value réalisée (€) :</label>
-      <input type="number" id="gain" placeholder="Entrez votre gain" required />
+      <label for="realizedCessions">Cessions réalisées (€) :</label>
+      <input
+        type="number"
+        id="realizedCessions"
+        placeholder="Entrez le montant des cessions réalisées"
+        required
+      />
 
-      <label for="flatTax">Prélèvement Forfaitaire Unique (%) :</label>
-      <input type="number" id="flatTax" value="30" required />
+      <label for="familyQuotient">Nombre de parts fiscales :</label>
+      <input
+        type="number"
+        id="familyQuotient"
+        name="familyQuotient"
+        placeholder="Entrez le nombre de parts"
+        value="1"
+        required
+        step="0.5"
+      />
 
-      <label for="socialTax">Taux des prélèvements sociaux (%) :</label>
-      <input type="number" id="socialTax" value="17.2" required />
+      <label for="income"
+        >Autres revenus imposables du foyer fiscal (€) :</label
+      >
+      <input
+        type="number"
+        id="income"
+        name="income"
+        value="0"
+        placeholder="Entrez votre revenu imposable"
+        required
+      />
 
       <button type="button" onclick="displayResult()">Calculer</button>
     </form>
@@ -119,65 +143,8 @@
       Remplissez les informations ci-dessus et cliquez sur "Calculer".
     </div>
 
-    <div>
-      <h2>Grille des taux d'imposition sur le revenu</h2>
-      <table id="taxTable">
-        <thead>
-          <tr>
-            <th>Tranche de revenu (€)</th>
-            <th>Taux d'imposition (%)</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
+    <script src="./taxation-lib.js"></script>
     <script>
-      const TAX_RATES_IR = [
-        { min: 0, max: 11294, rate: 0 },
-        { min: 11294, max: 28797, rate: 0.11 },
-        { min: 28797, max: 82341, rate: 0.3 },
-        { min: 82342, max: 177106, rate: 0.41 },
-        { min: 177106, max: Infinity, rate: 0.45 },
-      ];
-
-      // https://www.economie.gouv.fr/particuliers/decote-impot-revenu
-      const DECOTE_APPLICATION_THRESHOLD = [1929, 3191]; // The threshold for applying decote for 1 and 2 parts
-      const DECOTE_MAX = [873, 1444]; // The max decote amount for 1 and 2 parts
-      const DECOTE_PERCENTAGE = 0.4525; // The percentage of the decote
-
-      // Populate the income tax table
-      function populateTaxTable() {
-        const tableBody = document.querySelector("#taxTable tbody");
-        tableBody.innerHTML = ""; // Clear the table first
-        TAX_RATES_IR.forEach((grid) => {
-          const row = document.createElement("tr");
-          const range =
-            grid.max === Infinity
-              ? `${grid.min} et plus`
-              : `${grid.min} - ${grid.max}`;
-          row.innerHTML = `
-            <td>${range}</td>
-            <td>${grid.rate * 100} %</td>
-          `;
-          tableBody.appendChild(row);
-        });
-      }
-
-      function calculateIR(gain) {
-        let tax = 0;
-        for (const bracket of TAX_RATES_IR) {
-          if (gain > bracket.min) {
-            const taxableAmount = Math.min(
-              bracket.max - bracket.min,
-              gain - bracket.min
-            );
-            tax += taxableAmount * bracket.rate;
-          }
-        }
-        return tax;
-      }
-
       function calculateFlatTax(
         totalInvestment,
         totalPortfolio,
@@ -188,25 +155,6 @@
         return (gain - totalInvestment * (gain / totalPortfolio)) * flatTaxRate;
       }
 
-      function calculateDecote(tax, familyQuotient = 1) {
-        const decoteThreshold =
-          familyQuotient == 1
-            ? DECOTE_APPLICATION_THRESHOLD[0]
-            : DECOTE_APPLICATION_THRESHOLD[1];
-
-        const decoteMax = familyQuotient == 1 ? DECOTE_MAX[0] : DECOTE_MAX[1];
-
-        if (tax <= decoteThreshold) {
-          let decote = decoteMax - tax * DECOTE_PERCENTAGE;
-          if (tax - decote > 0) {
-            return decoteMax - tax * DECOTE_PERCENTAGE;
-          } else {
-            return tax;
-          }
-        }
-        return 0;
-      }
-
       function displayResult() {
         // Récupération des données
         const totalInvestment = parseFloat(
@@ -215,23 +163,23 @@
         const totalPortfolio = parseFloat(
           document.getElementById("total_portfolio").value
         );
-        const gain = parseFloat(document.getElementById("gain").value);
-        const flatTaxRate = parseFloat(
-          document.getElementById("flatTax").value
+        const realizedCessions = parseFloat(
+          document.getElementById("realizedCessions").value
         );
-        const socialTaxRate = parseFloat(
-          document.getElementById("socialTax").value
+        const familyQuotient = parseFloat(
+          document.getElementById("familyQuotient").value
         );
+        const income = parseFloat(document.getElementById("income").value);
 
         if (
           isNaN(totalInvestment) ||
           isNaN(totalPortfolio) ||
-          isNaN(gain) ||
-          isNaN(flatTaxRate) ||
-          isNaN(socialTaxRate)
+          isNaN(realizedCessions) ||
+          isNaN(familyQuotient) ||
+          isNaN(income)
         ) {
           document.getElementById("result").innerHTML =
-            "Veuillez entrer une plus-value valide.";
+            "Veuillez entrer des valeurs numériques valides.";
           return;
         }
 
@@ -239,47 +187,83 @@
         const flatTax = calculateFlatTax(
           totalInvestment,
           totalPortfolio,
-          gain,
-          flatTaxRate / 100
+          realizedCessions,
+          PFU_RATE
         );
-        const flatTaxPercentage = (flatTax / gain) * 100;
 
-        // Calcul Barème Progressif
-        const incomeTax = calculateIR(gain);
-        const decote = calculateDecote(incomeTax);
-        const incomeTaxWithDecote = incomeTax - decote;
-        const socialTax = (socialTaxRate / 100) * gain;
-        const totalProgressiveTax = incomeTaxWithDecote + socialTax;
-        const progressiveTaxPercentage = (totalProgressiveTax / gain) * 100;
+        // Calcul Impôt sur le Revenu avec les cessions réalisées
+        const {
+          tax: incomeTaxWithRealizedCessions,
+          taxAfterDecote: incomeTaxWithRealizedCessionsAfterDecote,
+          taxBreakdown: incomeTaxBreakdownWithRealizedCessions,
+          decote: decoteWithRealizedCessions,
+        } = calculateIR(income + realizedCessions, familyQuotient);
+
+        // Calcul Impôt sur le Revenu sans les cessions réalisées
+        const {
+          tax: incomeTaxWithtoutRealizedCessions,
+          taxAfterDecote: incomeTaxWithtoutRealizedCessionsAfterDecote,
+          taxBreakdown: incomeTaxBreakdownWithtoutRealizedCessions,
+          decote: decoteWithtoutRealizedCessions,
+        } = calculateIR(income, familyQuotient);
+
+        // Calcul du total des impôts avec les deux méthodes
+        const totalIncome = realizedCessions + income;
+
+        // Calcul des impôts avec et sans PFU
+        const incomeTaxWithPFU = incomeTaxWithtoutRealizedCessionsAfterDecote;
+        const incomeTaxWithIR = incomeTaxWithRealizedCessionsAfterDecote;
+        const socialTaxWithIR = PFU_PS_RATE * realizedCessions;
+
+        // Calcul des pourcentages
+        const incomeTaxWithPFUPercentage =
+          (incomeTaxWithPFU / totalIncome) * 100;
+        const incomeTaxWithIRPercentage = (incomeTaxWithIR / totalIncome) * 100;
+        const socialTaxWithPFUPercentage = 0;
+        const socialTaxWithIRPercentage = (socialTaxWithIR / totalIncome) * 100;
+
+        // Calcul du total des impôts avec et sans PFU
+        const totalTaxWithPFU = flatTax + incomeTaxWithPFU;
+        const totalTaxWithIR = incomeTaxWithIR + socialTaxWithIR;
 
         // Affichage des résultats
         document.getElementById("result").innerHTML = `
         <h2>Résultats :</h2>
-        <p><strong>Plus-value :</strong> ${gain.toFixed(0)} €</p>
-        <p><strong>Imposition via Flat Tax :</strong> ${flatTax.toFixed(
-          0
-        )} € (${flatTaxPercentage.toFixed(2)}%)</p>
-        <p><strong>Imposition via Barème Progressif :</strong></p>
+        <p><strong>Imposition avec la Flat Tax :</strong></p>
         <ul>
-          <li>Impôt sur le revenu : ${incomeTax.toFixed(0)} €</li>
-          <li>Décote : ${decote.toFixed(0)} €</li>
-          <li>Prélèvements sociaux (${socialTaxRate}%) : ${socialTax.toFixed(
-          0
-        )} €</li>
-          <li><strong>Total :</strong> ${totalProgressiveTax.toFixed(
+          <li>Flat Tax : ${flatTax.toFixed(0)} €</li>
+          <li>Impôt sur le Revenu : ${incomeTaxWithtoutRealizedCessionsAfterDecote.toFixed(
             0
-          )} € (${progressiveTaxPercentage.toFixed(2)}%)</li>
+          )} €</li>
+          <li><strong>Total :</strong> ${(
+            flatTax + incomeTaxWithtoutRealizedCessionsAfterDecote
+          ).toFixed(0)} € (${
+          (
+            (flatTax + incomeTaxWithtoutRealizedCessionsAfterDecote) /
+            totalIncome
+          ).toFixed(2) * 100
+        }%)</li>
         </ul>
+
+        <p><strong>Imposition avec le Barème Progressif :</strong></p>
+        <ul>
+          <li>Impôt sur le Revenu : ${incomeTaxWithIR.toFixed(0)} €</li>
+          <li>Prélèvements sociaux  : ${socialTaxWithIR.toFixed(0)} €</li>
+          <li><strong>Total :</strong> ${(
+            incomeTaxWithIR + socialTaxWithIR
+          ).toFixed(0)} € (${
+          ((incomeTaxWithIR + socialTaxWithIR) / totalIncome).toFixed(2) * 100
+        }%)</li>
+        </ul>
+        
+
         <p><strong>Conclusion :</strong> ${
-          flatTax < totalProgressiveTax
-            ? "La Flat Tax est plus avantageuse."
-            : "Le Barème Progressif est plus avantageux."
+          totalTaxWithPFU < totalTaxWithIR
+            ? "L'imposition avec la Flat Tax est plus avantageuse."
+            : "L'imposition avec le Barème Progressif est plus avantageux."
         }</p>
       `;
       }
-
-      // Initialize the tax table on page load
-      window.onload = populateTaxTable;
     </script>
   </body>
 </html>
