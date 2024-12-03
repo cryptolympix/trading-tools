@@ -226,6 +226,14 @@
         const totalTaxWithPFU = flatTax + incomeTaxWithPFU;
         const totalTaxWithIR = incomeTaxWithIR + socialTaxWithIR;
 
+        // Calcul des pourcentages
+        const totalTaxWithPFUPercentage = (totalTaxWithPFU / totalIncome) * 100;
+        const totalTaxWithIRPercentage = (totalTaxWithIR / totalIncome) * 100;
+
+        // Calcul du revenu net avec et sans PFU
+        const netIncomeWithPFU = totalIncome - totalTaxWithPFU;
+        const netIncomeWithIR = totalIncome - totalTaxWithIR;
+
         // Affichage des résultats
         document.getElementById("result").innerHTML = `
         <h2>Résultats :</h2>
@@ -235,31 +243,24 @@
           <li>Impôt sur le Revenu : ${incomeTaxWithtoutRealizedCessionsAfterDecote.toFixed(
             0
           )} €</li>
-          <li><strong>Imposition totale :</strong> ${(
-            flatTax + incomeTaxWithtoutRealizedCessionsAfterDecote
-          ).toFixed(0)} € (${
-          (
-            (flatTax + incomeTaxWithtoutRealizedCessionsAfterDecote) /
-            totalIncome
-          ).toFixed(2) * 100
-        }%)</li>
-        <li><strong>Revenu après impôt :</strong> ${(
-          totalIncome - totalTaxWithPFU
-        ).toFixed(0)} €</li>
+          <li><strong>Imposition totale :</strong> ${totalTaxWithPFU.toFixed(
+            0
+          )} € (${totalTaxWithPFUPercentage.toFixed(2)}%)</li>
+        <li><strong>Revenu après impôt :</strong> ${netIncomeWithPFU.toFixed(
+          0
+        )} €</li>
         </ul>
 
         <p><strong>Imposition avec le Barème Progressif :</strong></p>
         <ul>
           <li>Impôt sur le Revenu : ${incomeTaxWithIR.toFixed(0)} €</li>
           <li>Prélèvements sociaux  : ${socialTaxWithIR.toFixed(0)} €</li>
-          <li><strong>Imposition totale :</strong> ${(
-            incomeTaxWithIR + socialTaxWithIR
-          ).toFixed(0)} € (${
-          ((incomeTaxWithIR + socialTaxWithIR) / totalIncome).toFixed(2) * 100
-        }%)</li>
-        <li><strong>Revenu après impôt :</strong> ${(
-          totalIncome - totalTaxWithIR
-        ).toFixed(0)} €</li>
+          <li><strong>Imposition totale :</strong> ${totalTaxWithIR.toFixed(
+            0
+          )} € (${totalTaxWithIRPercentage.toFixed(2)}%)</li>
+        <li><strong>Revenu après impôt :</strong> ${netIncomeWithIR.toFixed(
+          2
+        )} €</li>
         </ul>
         
         <p><strong>Conclusion :</strong> ${
