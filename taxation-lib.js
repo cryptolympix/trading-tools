@@ -99,9 +99,7 @@ const TNS_SOCIAL_CONTRIBUTION_RATES = {
     { min: 51_005, max: 231_840, rate: 0.067 },
     { min: 231_840, max: Infinity, rate: 0.065 },
   ],
-  Cotisation_Maladie_2: [
-    { min: 0, max: Infinity, rate: 0.005, maxImposition: 231_840 },
-  ],
+  Cotisation_Maladie_2: [{ min: 0, max: Infinity, rate: 0.005, cap: 231_840 }],
   Retraite_Base: [
     { min: 0, max: 46_368, rate: 0.1775 },
     { min: 46_368, max: Infinity, rate: 0.006 },
@@ -140,14 +138,7 @@ function calculateSocialContributionsForTNS(income) {
   for (const [contributionName, brackets] of Object.entries(
     TNS_SOCIAL_CONTRIBUTION_RATES
   )) {
-    for (const {
-      min,
-      max,
-      rate,
-      minRate,
-      maxRate,
-      maxImposition,
-    } of brackets) {
+    for (const { min, max, rate, minRate, maxRate, cap } of brackets) {
       if (income > min) {
         const taxableAmount = Math.min(income, max) - min;
         const minContribution =
@@ -155,11 +146,11 @@ function calculateSocialContributionsForTNS(income) {
 
         if (rate != undefined) {
           const contribution = taxableAmount * rate;
-          if (maxImposition && contribution > maxImposition) {
-            contributions += maxImposition;
+          if (cap && contribution > cap) {
+            contributions += cap;
             contributionsBreakdown.push({
               contributionName,
-              contribution: maxImposition,
+              contribution: cap,
             });
           } else {
             contributions += Math.max(minContribution, contribution.toFixed(0));
@@ -198,17 +189,22 @@ function calculateSocialContributionsForTNS(income) {
 
 // =====================================================================================================================
 
-// https://www.urssaf.fr/accueil/outils-documentation/taux-baremes/taux-cotisations-secteur-prive.html
 // https://www.cleiss.fr/docs/regimes/regime_francea2.html
 
-const GENERAL_REGIME_CAPS = [3864, 30912]; // Plafonds de la sécurité sociale
+// https://www.urssaf.fr/accueil/actualites/plafond-annuel-securite-sociale.html
+const PASS = 46_368; // Plafond Annuel de la Sécurité Sociale
 
-// https://www.urssaf.fr/accueil/outils-documentation/taux-baremes/taux-cotisations-particuliers.html
+// https://www.urssaf.fr/accueil/outils-documentation/taux-baremes/taux-cotisations-secteur-prive.html
 const EMPLOYER_CONTRIBUTION_RATES = {
-  Maladie_Contribution_Solidarité_Autonomie: {
+  Maladie: {
     min: 0,
     max: Infinity,
-    rate: 0.0133,
+    rate: 0.013,
+  },
+  CSA: {
+    min: 0,
+    max: Infinity,
+    rate: 0.003,
   },
   Vieillesse_Deplafonnee: {
     min: 0,
@@ -218,82 +214,68 @@ const EMPLOYER_CONTRIBUTION_RATES = {
   Vieillesse_Plafonnee: {
     min: 0,
     rate: 0.0855,
-    max: GENERAL_REGIME_CAPS[0] * 12,
+    max: Infinity,
+    cap: PASS,
   },
   Allocations_Familiales: {
     min: 0,
     max: Infinity,
     rate: 0.0525,
   },
-  Accident_Travail: {
+  Dialogue_Social: {
     min: 0,
     max: Infinity,
-    rate: 0.021,
+    rate: 0.00016,
+  },
+  Chomage: {
+    min: 0,
+    max: Infinity,
+    rate: 0.0405,
+    cap: 4 * PASS,
+  },
+  AGS: {
+    min: 0,
+    max: Infinity,
+    rate: 0.0025,
+    cap: 4 * PASS,
   },
   FNAL: {
     min: 0,
     max: Infinity,
     rate: 0.001,
   },
-  Dialogue_Social: {
+  CPF_CDD: {
     min: 0,
     max: Infinity,
-    rate: 0.00016,
+    rate: 0.01,
   },
-  Ircem_Prevoyance_Indemnite_Depart_Retraite_Fived_Paritarisme: {
+  Agirc_Arrco_Retraite_Complementaire_Tranche_1: {
     min: 0,
     max: Infinity,
-    rate: 0.0245,
-  },
-  Icem_Retraite_Complementaire_Tranche_1: {
-    min: 0,
-    max: GENERAL_REGIME_CAPS[0] * 12,
     rate: 0.0472,
+    cap: PASS,
   },
-  Icem_Retraite_Complementaire_Tranche_2: {
-    min: GENERAL_REGIME_CAPS[0] * 12,
-    max: GENERAL_REGIME_CAPS[1] * 12,
+  Agirc_Arrco_Retraite_Complementaire_Tranche_2: {
+    min: 0,
+    max: Infinity,
     rate: 0.1295,
+    cap: 8 * PASS,
   },
   CEG_Tranche_1: {
     min: 0,
-    max: GENERAL_REGIME_CAPS[0] * 12,
+    max: Infinity,
     rate: 0.0129,
+    cap: PASS,
   },
   CEG_Tranche_2: {
-    min: GENERAL_REGIME_CAPS[0] * 12,
-    max: GENERAL_REGIME_CAPS[1] * 12,
+    min: 0,
+    max: Infinity,
     rate: 0.0162,
-  },
-  // https://www.service-public.fr/particuliers/vosdroits/F15396
-  Argic_Arrco_Retraite_Complementaire_Tranche_1: {
-    min: 0,
-    max: GENERAL_REGIME_CAPS[0] * 12,
-    rate: 0.0472,
-  },
-  Argic_Arrco_Retraite_Complementaire_Tranche_2: {
-    min: GENERAL_REGIME_CAPS[0] * 12,
-    max: GENERAL_REGIME_CAPS[1] * 12,
-    rate: 0.1295,
-  },
-  Assurance_Chomage: {
-    min: 0,
-    max: Infinity,
-    rate: 0.0405,
-  },
-  Formation_Professionnelle: {
-    min: 0,
-    max: Infinity,
-    rate: 0.0085,
-  },
-  Dialogue_Social: {
-    min: 0,
-    max: Infinity,
-    rate: 0.00016,
+    cap: 8 * PASS,
   },
 };
 
-// https://www.urssaf.fr/accueil/outils-documentation/taux-baremes/taux-cotisations-particuliers.html
+// https://www.urssaf.fr/accueil/outils-documentation/taux-baremes/taux-cotisations-secteur-prive.html
 const SALARIAL_CONTRIBUTION_RATES = {
   Vieillesse_Deplafonnee: {
     min: 0,
@@ -302,62 +284,58 @@ const SALARIAL_CONTRIBUTION_RATES = {
   },
   Vieillesse_Plafonnee: {
     min: 0,
-    max: GENERAL_REGIME_CAPS[0] * 12,
+    max: Infinity,
     rate: 0.069,
+    cap: PASS,
   },
-  CRDS_CSG_Imposable: {
+  CSG: {
     min: 0,
     max: Infinity,
-    rate: 0.029,
+    rate: 0.092,
+    cap: 4 * PASS,
   },
-  CSG_Non_Imposable: {
+  CRDS: {
     min: 0,
     max: Infinity,
-    rate: 0.068,
+    rate: 0.005,
+    cap: 4 * PASS,
   },
-  Icem_Retraite_Complementaire_Tranche_1: {
+  Agirc_Arrco_Retraite_Complementaire_Tranche_1: {
     min: 0,
-    max: GENERAL_REGIME_CAPS[0] * 12,
+    max: Infinity,
     rate: 0.0315,
+    cap: PASS,
   },
-  Icem_Retraite_Complementaire_Tranche_2: {
-    min: GENERAL_REGIME_CAPS[0] * 12,
-    max: GENERAL_REGIME_CAPS[1] * 12,
+  Agirc_Arrco_Retraite_Complementaire_Tranche_2: {
+    min: 0,
+    max: Infinity,
     rate: 0.0864,
+    cap: 8 * PASS,
   },
   CEG_Tranche_1: {
     min: 0,
-    max: GENERAL_REGIME_CAPS[0] * 12,
+    max: Infinity,
     rate: 0.0086,
+    cap: PASS,
   },
   CEG_Tranche_2: {
-    min: GENERAL_REGIME_CAPS[0] * 12,
-    max: GENERAL_REGIME_CAPS[1] * 12,
-    rate: 0.0108,
-  },
-  // https://www.service-public.fr/particuliers/vosdroits/F15396
-  Argic_Arrco_Retraite_Complementaire_Tranche_1: {
     min: 0,
-    max: GENERAL_REGIME_CAPS[0] * 12,
-    rate: 0.0315,
-  },
-  Argic_Arrco_Retraite_Complementaire_Tranche_2: {
-    min: GENERAL_REGIME_CAPS[0] * 12,
-    max: GENERAL_REGIME_CAPS[1] * 12,
-    rate: 0.0864,
+    max: Infinity,
+    rate: 0.0108,
+    cap: 8 * PASS,
   },
 };
 
-function calculateSocialContributionForAssimilatedEmployee(income) {
+function calculateSocialContributionsForAssimilatedEmployee(income) {
   let employerContributions = 0;
   let employerContributionsBreakdown = [];
 
-  for (const [contributionName, { min, max, rate }] of Object.entries(
+  for (const [contributionName, { min, max, rate, cap }] of Object.entries(
     EMPLOYER_CONTRIBUTION_RATES
   )) {
     if (income > min) {
       const taxableAmount = Math.min(income, max) - min;
-      const contribution = taxableAmount * rate;
+      const contribution = Math.min(taxableAmount * rate, cap || Infinity);
       employerContributions += contribution;
       employerContributionsBreakdown.push({
         contributionName,
@@ -369,12 +347,12 @@ function calculateSocialContributionForAssimilatedEmployee(income) {
   let salarialContributions = 0;
   let salarialContributionsBreakdown = [];
 
-  for (const [contributionName, { min, max, rate }] of Object.entries(
+  for (const [contributionName, { min, max, rate, cap }] of Object.entries(
     SALARIAL_CONTRIBUTION_RATES
   )) {
     if (income > min) {
       const taxableAmount = Math.min(income, max) - min;
-      const contribution = taxableAmount * rate;
+      const contribution = Math.min(taxableAmount * rate, cap || Infinity);
       salarialContributions += contribution;
       salarialContributionsBreakdown.push({
         contributionName,
