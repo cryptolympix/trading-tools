@@ -27,15 +27,15 @@ function calculateDecote(tax, familyQuotient = 1) {
 // https://www.economie.gouv.fr/particuliers/tranches-imposition-impot-revenu
 const TAX_RATES_IR = [
   { min: 0, max: 11294, rate: 0 },
-  { min: 11294, max: 28797, rate: 0.11 },
-  { min: 28797, max: 82341, rate: 0.3 },
-  { min: 82342, max: 177106, rate: 0.41 },
-  { min: 177106, max: Infinity, rate: 0.45 },
+  { min: 11_294, max: 28_797, rate: 0.11 },
+  { min: 28_797, max: 82_341, rate: 0.3 },
+  { min: 82_342, max: 177_106, rate: 0.41 },
+  { min: 177_106, max: Infinity, rate: 0.45 },
 ];
 
 function calculateIR(profit, familyQuotient = 1) {
   const incomePerPart = profit / familyQuotient;
-  const taxBreakdown = [];
+  let taxBreakdown = [];
   let tax = 0;
 
   for (const { min, max, rate } of TAX_RATES_IR) {
@@ -69,8 +69,8 @@ const IS_STANDARD_TAX_RATE = 0.25; // Taux standard de l'IS
 
 // https://entreprendre.service-public.fr/vosdroits/F23575
 const TAX_RATES_IS = [
-  { min: 0, max: 42500, rate: IS_REDUCED_TAX_RATE },
-  { min: 42500, max: Infinity, rate: IS_STANDARD_TAX_RATE },
+  { min: 0, max: 42_500, rate: IS_REDUCED_TAX_RATE },
+  { min: 42_500, max: Infinity, rate: IS_STANDARD_TAX_RATE },
 ];
 
 function calculateIS(profit) {
@@ -90,14 +90,313 @@ function calculateIS(profit) {
 
 // =====================================================================================================================
 
-// https://entreprendre.service-public.fr/vosdroits/F36239
-const EURL_SOCIAL_CONTRIBUTION_RATE = 0.45;
-
-// https://entreprendre.service-public.fr/vosdroits/F36240
-const SASU_SOCIAL_CONTRIBUTION_RATE = 0.82;
+// https://www.urssaf.fr/accueil/outils-documentation/taux-baremes/taux-cotisations-ac-plnr.html
+const TNS_SOCIAL_CONTRIBUTION_RATES = {
+  Cotisation_Maladie_1: [
+    { min: 0, max: 18_547, rate: 0 },
+    { min: 18_547, max: 27_821, minRate: 0, maxRate: 0.04 },
+    { min: 27_821, max: 51_005, minRate: 0.04, maxRate: 0.067 },
+    { min: 51_005, max: 231_840, rate: 0.067 },
+    { min: 231_840, max: Infinity, rate: 0.065 },
+  ],
+  Cotisation_Maladie_2: [
+    { min: 0, max: Infinity, rate: 0.005, maxImposition: 231_840 },
+  ],
+  Retraite_Base: [
+    { min: 0, max: 46_368, rate: 0.1775 },
+    { min: 46_368, max: Infinity, rate: 0.006 },
+  ],
+  Retraite_Complementaire: [
+    { min: 0, max: 46_368, rate: 0 },
+    { min: 46_368, max: 185_472, rate: 0.14 },
+  ],
+  Invalidite_Deces: [{ min: 0, max: 46_368, rate: 0.013 }],
+  Allocations_Familiales: [
+    { min: 0, max: 51_005, rate: 0 },
+    { min: 51_005, max: 64_915, minRate: 0, maxRate: 0.031 },
+    { min: 64_915, max: Infinity, rate: 0.031 },
+  ],
+  CSG_CRDS: [
+    { min: 0, max: Infinity, rate: 0.097 },
+    { min: 0, max: Infinity, rate: 0.067 },
+  ],
+  Formation_Professionnelle: [{ min: 46_638, max: Infinity, rate: 0.0025 }],
+};
 
 // https://www.urssaf.fr/accueil/outils-documentation/taux-baremes/taux-cotisations-ac-plnr.html
-const EURL_MINIMUM_SOCIAL_CONTRIBUTION = 93 + 931 + 69 + 134;
+const TNS_MINIMUM_SOCIAL_CONTRIBUTION = {
+  Cotisation_Maladie_2: 93,
+  Retraite_Base: 931,
+  Invalidite_Deces: 69,
+  Formation_Professionnelle: 134,
+};
+
+// URSSAF : Social contributions for TNS (Travailleurs Non Salariés)
+// https://entreprendre.service-public.fr/vosdroits/F36239
+function calculateSocialContributionsForTNS(income) {
+  let contributions = 0;
+  let contributionsBreakdown = [];
+
+  for (const [contributionName, brackets] of Object.entries(
+    TNS_SOCIAL_CONTRIBUTION_RATES
+  )) {
+    for (const {
+      min,
+      max,
+      rate,
+      minRate,
+      maxRate,
+      maxImposition,
+    } of brackets) {
+      if (income > min) {
+        const taxableAmount = Math.min(income, max) - min;
+        const minContribution =
+          TNS_MINIMUM_SOCIAL_CONTRIBUTION[contributionName] || 0;
+
+        if (rate != undefined) {
+          const contribution = taxableAmount * rate;
+          if (maxImposition && contribution > maxImposition) {
+            contributions += maxImposition;
+            contributionsBreakdown.push({
+              contributionName,
+              contribution: maxImposition,
+            });
+          } else {
+            contributions += Math.max(minContribution, contribution.toFixed(0));
+            contributionsBreakdown.push({
+              contributionName,
+              contribution: contribution.toFixed(0),
+            });
+          }
+        } else if (minRate != undefined && maxRate != undefined) {
+          const ratio = taxableAmount / (max - min);
+          const contribution =
+            taxableAmount * (minRate + ratio * (maxRate - minRate));
+          contributions += Math.max(minContribution, contribution.toFixed(0));
+          contributionsBreakdown.push({
+            contributionName,
+            contribution: contribution.toFixed(0),
+          });
+        } else {
+          console.log(
+            `Error: No rate found for ${contributionName} between ${min} and ${max}`
+          );
+        }
+      }
+    }
+  }
+
+  // Calculate the social contribution rate
+  const contributionsRate = contributions / income;
+
+  return {
+    contributionsRate,
+    contributions,
+    contributionsBreakdown,
+  };
+}
+
+// =====================================================================================================================
+
+// https://www.urssaf.fr/accueil/outils-documentation/taux-baremes/taux-cotisations-secteur-prive.html
+// https://www.cleiss.fr/docs/regimes/regime_francea2.html
+
+const GENERAL_REGIME_CAPS = [3864, 30912]; // Plafonds de la sécurité sociale
+
+// https://www.urssaf.fr/accueil/outils-documentation/taux-baremes/taux-cotisations-particuliers.html
+const EMPLOYER_CONTRIBUTION_RATES = {
+  Maladie_Contribution_Solidarité_Autonomie: {
+    min: 0,
+    max: Infinity,
+    rate: 0.0133,
+  },
+  Vieillesse_Deplafonnee: {
+    min: 0,
+    max: Infinity,
+    rate: 0.0202,
+  },
+  Vieillesse_Plafonnee: {
+    min: 0,
+    rate: 0.0855,
+    max: GENERAL_REGIME_CAPS[0] * 12,
+  },
+  Allocations_Familiales: {
+    min: 0,
+    max: Infinity,
+    rate: 0.0525,
+  },
+  Accident_Travail: {
+    min: 0,
+    max: Infinity,
+    rate: 0.021,
+  },
+  FNAL: {
+    min: 0,
+    max: Infinity,
+    rate: 0.001,
+  },
+  Dialogue_Social: {
+    min: 0,
+    max: Infinity,
+    rate: 0.00016,
+  },
+  Ircem_Prevoyance_Indemnite_Depart_Retraite_Fived_Paritarisme: {
+    min: 0,
+    max: Infinity,
+    rate: 0.0245,
+  },
+  Icem_Retraite_Complementaire_Tranche_1: {
+    min: 0,
+    max: GENERAL_REGIME_CAPS[0] * 12,
+    rate: 0.0472,
+  },
+  Icem_Retraite_Complementaire_Tranche_2: {
+    min: GENERAL_REGIME_CAPS[0] * 12,
+    max: GENERAL_REGIME_CAPS[1] * 12,
+    rate: 0.1295,
+  },
+  CEG_Tranche_1: {
+    min: 0,
+    max: GENERAL_REGIME_CAPS[0] * 12,
+    rate: 0.0129,
+  },
+  CEG_Tranche_2: {
+    min: GENERAL_REGIME_CAPS[0] * 12,
+    max: GENERAL_REGIME_CAPS[1] * 12,
+    rate: 0.0162,
+  },
+  // https://www.service-public.fr/particuliers/vosdroits/F15396
+  Argic_Arrco_Retraite_Complementaire_Tranche_1: {
+    min: 0,
+    max: GENERAL_REGIME_CAPS[0] * 12,
+    rate: 0.0472,
+  },
+  Argic_Arrco_Retraite_Complementaire_Tranche_2: {
+    min: GENERAL_REGIME_CAPS[0] * 12,
+    max: GENERAL_REGIME_CAPS[1] * 12,
+    rate: 0.1295,
+  },
+  Assurance_Chomage: {
+    min: 0,
+    max: Infinity,
+    rate: 0.0405,
+  },
+  Formation_Professionnelle: {
+    min: 0,
+    max: Infinity,
+    rate: 0.0085,
+  },
+  Dialogue_Social: {
+    min: 0,
+    max: Infinity,
+    rate: 0.00016,
+  },
+};
+
+// https://www.urssaf.fr/accueil/outils-documentation/taux-baremes/taux-cotisations-particuliers.html
+const SALARIAL_CONTRIBUTION_RATES = {
+  Vieillesse_Deplafonnee: {
+    min: 0,
+    max: Infinity,
+    rate: 0.004,
+  },
+  Vieillesse_Plafonnee: {
+    min: 0,
+    max: GENERAL_REGIME_CAPS[0] * 12,
+    rate: 0.069,
+  },
+  CRDS_CSG_Imposable: {
+    min: 0,
+    max: Infinity,
+    rate: 0.029,
+  },
+  CSG_Non_Imposable: {
+    min: 0,
+    max: Infinity,
+    rate: 0.068,
+  },
+  Icem_Retraite_Complementaire_Tranche_1: {
+    min: 0,
+    max: GENERAL_REGIME_CAPS[0] * 12,
+    rate: 0.0315,
+  },
+  Icem_Retraite_Complementaire_Tranche_2: {
+    min: GENERAL_REGIME_CAPS[0] * 12,
+    max: GENERAL_REGIME_CAPS[1] * 12,
+    rate: 0.0864,
+  },
+  CEG_Tranche_1: {
+    min: 0,
+    max: GENERAL_REGIME_CAPS[0] * 12,
+    rate: 0.0086,
+  },
+  CEG_Tranche_2: {
+    min: GENERAL_REGIME_CAPS[0] * 12,
+    max: GENERAL_REGIME_CAPS[1] * 12,
+    rate: 0.0108,
+  },
+  // https://www.service-public.fr/particuliers/vosdroits/F15396
+  Argic_Arrco_Retraite_Complementaire_Tranche_1: {
+    min: 0,
+    max: GENERAL_REGIME_CAPS[0] * 12,
+    rate: 0.0315,
+  },
+  Argic_Arrco_Retraite_Complementaire_Tranche_2: {
+    min: GENERAL_REGIME_CAPS[0] * 12,
+    max: GENERAL_REGIME_CAPS[1] * 12,
+    rate: 0.0864,
+  },
+};
+
+function calculateSocialContributionForAssimilatedEmployee(income) {
+  let employerContributions = 0;
+  let employerContributionsBreakdown = [];
+
+  for (const [contributionName, { min, max, rate }] of Object.entries(
+    EMPLOYER_CONTRIBUTION_RATES
+  )) {
+    if (income > min) {
+      const taxableAmount = Math.min(income, max) - min;
+      const contribution = taxableAmount * rate;
+      employerContributions += contribution;
+      employerContributionsBreakdown.push({
+        contributionName,
+        contribution: contribution.toFixed(0),
+      });
+    }
+  }
+
+  let salarialContributions = 0;
+  let salarialContributionsBreakdown = [];
+
+  for (const [contributionName, { min, max, rate }] of Object.entries(
+    SALARIAL_CONTRIBUTION_RATES
+  )) {
+    if (income > min) {
+      const taxableAmount = Math.min(income, max) - min;
+      const contribution = taxableAmount * rate;
+      salarialContributions += contribution;
+      salarialContributionsBreakdown.push({
+        contributionName,
+        contribution: contribution.toFixed(0),
+      });
+    }
+  }
+
+  const totalContributions = employerContributions + salarialContributions;
+  const totalContributionsRate = totalContributions / income;
+
+  return {
+    totalContributions,
+    totalContributionsRate,
+    employerContributions,
+    employerContributionsBreakdown,
+    salarialContributions,
+    salarialContributionsBreakdown,
+  };
+}
+
+// =====================================================================================================================
 
 // https://www.economie.gouv.fr/particuliers/prelevement-forfaitaire-unique-pfu
 const PFU_RATE = 0.3;
