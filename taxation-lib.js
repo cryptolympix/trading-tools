@@ -4,20 +4,13 @@ const DECOTE_MAX = [873, 1444]; // The max decote amount for 1 and 2 parts
 const DECOTE_PERCENTAGE = 0.4525; // The percentage of the decote
 
 function calculateDecote(tax, familyQuotient = 1) {
-  const decoteThreshold =
-    familyQuotient == 1
-      ? DECOTE_APPLICATION_THRESHOLD[0]
-      : DECOTE_APPLICATION_THRESHOLD[1];
-
-  const decoteMax = familyQuotient == 1 ? DECOTE_MAX[0] : DECOTE_MAX[1];
+  const index = familyQuotient === 1 ? 0 : 1;
+  const decoteThreshold = DECOTE_APPLICATION_THRESHOLD[index];
+  const decoteMax = DECOTE_MAX[index];
 
   if (tax <= decoteThreshold) {
-    let decote = decoteMax - tax * DECOTE_PERCENTAGE;
-    if (tax - decote > 0) {
-      return decoteMax - tax * DECOTE_PERCENTAGE;
-    } else {
-      return tax;
-    }
+    const decote = decoteMax - tax * DECOTE_PERCENTAGE;
+    return Math.max(0, decote);
   }
   return 0;
 }
@@ -192,6 +185,7 @@ function calculateSocialContributionsForTNS(income) {
 // https://www.cleiss.fr/docs/regimes/regime_francea2.html
 
 // https://www.urssaf.fr/accueil/actualites/plafond-annuel-securite-sociale.html
+const PMSS = 3_864; // Plafond Mensuel de la Sécurité Sociale
 const PASS = 46_368; // Plafond Annuel de la Sécurité Sociale
 
 // https://www.urssaf.fr/accueil/outils-documentation/taux-baremes/taux-cotisations-secteur-prive.html
@@ -213,9 +207,8 @@ const EMPLOYER_CONTRIBUTION_RATES = {
   },
   Vieillesse_Plafonnee: {
     min: 0,
+    max: PASS,
     rate: 0.0855,
-    max: Infinity,
-    cap: PASS,
   },
   Allocations_Familiales: {
     min: 0,
@@ -229,15 +222,13 @@ const EMPLOYER_CONTRIBUTION_RATES = {
   },
   Chomage: {
     min: 0,
-    max: Infinity,
+    max: 4 * PASS,
     rate: 0.0405,
-    cap: 4 * PASS,
   },
   AGS: {
     min: 0,
-    max: Infinity,
+    max: 4 * PASS,
     rate: 0.0025,
-    cap: 4 * PASS,
   },
   FNAL: {
     min: 0,
@@ -281,21 +272,18 @@ const SALARIAL_CONTRIBUTION_RATES = {
   },
   Vieillesse_Plafonnee: {
     min: 0,
-    max: Infinity,
+    max: PASS,
     rate: 0.069,
-    cap: PASS,
   },
   CSG: {
     min: 0,
-    max: Infinity,
+    max: 4 * PASS,
     rate: 0.092,
-    cap: 4 * PASS,
   },
   CRDS: {
     min: 0,
-    max: Infinity,
+    max: 4 * PASS,
     rate: 0.005,
-    cap: 4 * PASS,
   },
   // https://www.service-public.fr/particuliers/vosdroits/F15396
   Agirc_Arrco_Retraite_Complementaire_Tranche_1: {
@@ -374,3 +362,15 @@ function calculateSocialContributionsForAssimilatedEmployee(income) {
 const PFU_RATE = 0.3;
 const PFU_IR_RATE = 0.128;
 const PFU_PS_RATE = 0.172;
+
+function calculatePFU(income) {
+  const totalPFU = income * PFU_RATE;
+  const irPortion = income * PFU_IR_RATE;
+  const psPortion = income * PFU_PS_RATE;
+
+  return {
+    totalPFU: totalPFU,
+    irPortion: irPortion,
+    psPortion: psPortion,
+  };
+}
