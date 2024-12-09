@@ -249,29 +249,26 @@ const EMPLOYER_CONTRIBUTION_RATES = {
     max: Infinity,
     rate: 0.01,
   },
+  // https://www.service-public.fr/particuliers/vosdroits/F15396
   Agirc_Arrco_Retraite_Complementaire_Tranche_1: {
     min: 0,
-    max: Infinity,
+    max: PASS,
     rate: 0.0472,
-    cap: PASS,
   },
   Agirc_Arrco_Retraite_Complementaire_Tranche_2: {
-    min: 0,
-    max: Infinity,
+    min: PASS,
+    max: 8 * PASS,
     rate: 0.1295,
-    cap: 8 * PASS,
   },
   CEG_Tranche_1: {
     min: 0,
-    max: Infinity,
+    max: PASS,
     rate: 0.0129,
-    cap: PASS,
   },
   CEG_Tranche_2: {
-    min: 0,
-    max: Infinity,
+    min: PASS,
+    max: 8 * PASS,
     rate: 0.0162,
-    cap: 8 * PASS,
   },
 };
 
@@ -300,29 +297,26 @@ const SALARIAL_CONTRIBUTION_RATES = {
     rate: 0.005,
     cap: 4 * PASS,
   },
+  // https://www.service-public.fr/particuliers/vosdroits/F15396
   Agirc_Arrco_Retraite_Complementaire_Tranche_1: {
     min: 0,
-    max: Infinity,
+    max: PASS,
     rate: 0.0315,
-    cap: PASS,
   },
   Agirc_Arrco_Retraite_Complementaire_Tranche_2: {
-    min: 0,
-    max: Infinity,
+    min: PASS,
+    max: 8 * PASS,
     rate: 0.0864,
-    cap: 8 * PASS,
   },
   CEG_Tranche_1: {
     min: 0,
-    max: Infinity,
+    max: PASS,
     rate: 0.0086,
-    cap: PASS,
   },
   CEG_Tranche_2: {
-    min: 0,
-    max: Infinity,
+    min: PASS,
+    max: 8 * PASS,
     rate: 0.0108,
-    cap: 8 * PASS,
   },
 };
 
