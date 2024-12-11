@@ -193,7 +193,7 @@ const EMPLOYER_CONTRIBUTION_RATES = {
   Maladie: {
     min: 0,
     max: Infinity,
-    rate: 0.013,
+    rate: 0.13,
   },
   CSA: {
     min: 0,
@@ -308,16 +308,65 @@ const SALARIAL_CONTRIBUTION_RATES = {
   },
 };
 
-function calculateSocialContributionsForAssimilatedEmployee(income) {
+function calculateSocialContributionsForAssimilatedEmployeeFromNetIncome(
+  netIncome
+) {
+  const estimatedGrossIncome = netIncome * 1.25;
+  let grossIncome;
+
+  if (estimatedGrossIncome <= PASS) {
+    grossIncome = netIncome / 0.7899;
+  } else if (estimatedGrossIncome <= 4 * PASS) {
+    grossIncome = (netIncome + 0.0119 * PASS) / 0.8018;
+  } else if (estimatedGrossIncome <= 8 * PASS) {
+    grossIncome = (netIncome + 0.3999 * PASS) / 0.8988;
+  } else {
+    grossIncome = (netIncome + 1.1775 * PASS) / 0.996;
+  }
+
+  const {
+    totalContributions,
+    totalContributionsRate,
+    employerContributions,
+    employerContributionsRate,
+    employerContributionsBreakdown,
+    salariedContributions,
+    salariedContributionsRate,
+    salariedContributionsBreakdown,
+    totalEmployerCost,
+  } =
+    calculateSocialContributionsForAssimilatedEmployeeFromGrossIncome(
+      grossIncome
+    );
+
+  return {
+    totalContributions,
+    totalContributionsRate,
+    employerContributions,
+    employerContributionsRate,
+    employerContributionsBreakdown,
+    salariedContributions,
+    salariedContributionsRate,
+    salariedContributionsBreakdown,
+    totalEmployerCost,
+    grossIncome,
+    netIncome,
+  };
+}
+
+function calculateSocialContributionsForAssimilatedEmployeeFromGrossIncome(
+  grossIncome
+) {
+  const salariedRates = Object.entries(SALARIAL_CONTRIBUTION_RATES);
+  const employerRates = Object.entries(EMPLOYER_CONTRIBUTION_RATES);
+
   let employerContributions = 0;
   let employerContributionsBreakdown = [];
 
-  for (const [contributionName, { min, max, rate, cap }] of Object.entries(
-    EMPLOYER_CONTRIBUTION_RATES
-  )) {
-    if (income > min) {
-      const taxableAmount = Math.min(income, max) - min;
-      const contribution = Math.min(taxableAmount * rate, cap || Infinity);
+  for (const [contributionName, { min, max, rate }] of employerRates) {
+    if (grossIncome > min) {
+      const taxableAmount = Math.min(grossIncome, max) - min;
+      const contribution = taxableAmount * rate;
       employerContributions += contribution;
       employerContributionsBreakdown.push({
         contributionName,
@@ -326,15 +375,21 @@ function calculateSocialContributionsForAssimilatedEmployee(income) {
     }
   }
 
+  const totalIncome = grossIncome + employerContributions;
+
   let salarialContributions = 0;
   let salarialContributionsBreakdown = [];
 
-  for (const [contributionName, { min, max, rate, cap }] of Object.entries(
-    SALARIAL_CONTRIBUTION_RATES
-  )) {
-    if (income > min) {
-      const taxableAmount = Math.min(income, max) - min;
-      const contribution = Math.min(taxableAmount * rate, cap || Infinity);
+  for (const [contributionName, { min, max, rate }] of salariedRates) {
+    if (grossIncome > min) {
+      const taxableAmount =
+        Math.min(
+          contributionName === "CSG" || contributionName === "CRDS"
+            ? grossIncome * 0.9825
+            : grossIncome,
+          max
+        ) - min;
+      const contribution = taxableAmount * rate;
       salarialContributions += contribution;
       salarialContributionsBreakdown.push({
         contributionName,
@@ -344,15 +399,24 @@ function calculateSocialContributionsForAssimilatedEmployee(income) {
   }
 
   const totalContributions = employerContributions + salarialContributions;
-  const totalContributionsRate = totalContributions / income;
+  const netIncome = grossIncome - salarialContributions;
+  const salarialContributionsRate = salarialContributions / netIncome;
+  const employerContributionsRate = employerContributions / netIncome;
+  const totalContributionsRate = totalContributions / netIncome;
+  const totalEmployerCost = totalIncome;
 
   return {
     totalContributions,
     totalContributionsRate,
     employerContributions,
+    employerContributionsRate,
     employerContributionsBreakdown,
     salarialContributions,
+    salarialContributionsRate,
     salarialContributionsBreakdown,
+    totalEmployerCost,
+    grossIncome,
+    netIncome,
   };
 }
 
