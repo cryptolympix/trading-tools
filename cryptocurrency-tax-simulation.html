@@ -145,10 +145,6 @@
 
     <script src="./taxation-lib.js"></script>
     <script>
-      function calculatePFU(gain, totalInvestment, totalPortfolio) {
-        return (gain - totalInvestment * (gain / totalPortfolio)) * flatTaxRate;
-      }
-
       function displayResult() {
         // Récupération des données
         const totalInvestment = parseFloat(
