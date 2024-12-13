@@ -145,13 +145,7 @@
 
     <script src="./taxation-lib.js"></script>
     <script>
-      function calculateFlatTax(
-        totalInvestment,
-        totalPortfolio,
-        gain,
-        flatTaxRate
-      ) {
-        // Calcul Flat Tax
+      function calculatePFU(gain, totalInvestment, totalPortfolio) {
         return (gain - totalInvestment * (gain / totalPortfolio)) * flatTaxRate;
       }
 
@@ -184,12 +178,11 @@
         }
 
         // Calcul Flat Tax
-        const flatTax = calculateFlatTax(
-          totalInvestment,
-          totalPortfolio,
+        const flatTax = calculatePFU(
           realizedCessions,
-          PFU_RATE
-        );
+          totalInvestment,
+          totalPortfolio
+        ).totalPFU;
 
         // Calcul Impôt sur le Revenu avec les cessions réalisées
         const {

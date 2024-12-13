@@ -427,10 +427,21 @@ const PFU_RATE = 0.3;
 const PFU_IR_RATE = 0.128;
 const PFU_PS_RATE = 0.172;
 
-function calculatePFU(income) {
-  const totalPFU = income * PFU_RATE;
-  const irPortion = income * PFU_IR_RATE;
-  const psPortion = income * PFU_PS_RATE;
+function calculatePFU(gain, totalInvestment = 0, totalPortfolio = 0) {
+  let totalPFU = 0;
+  let irPortion = 0;
+  let psPortion = 0;
+
+  if (totalInvestment === 0 || totalPortfolio === 0) {
+    totalPFU = gain * PFU_RATE;
+    irPortion = gain * PFU_IR_RATE;
+    psPortion = gain * PFU_PS_RATE;
+  } else {
+    const taxableAmount = gain - totalInvestment * (gain / totalPortfolio);
+    totalPFU = taxableAmount * PFU_RATE;
+    irPortion = taxableAmount * PFU_IR_RATE;
+    psPortion = taxableAmount * PFU_PS_RATE;
+  }
 
   return {
     totalPFU: totalPFU,
