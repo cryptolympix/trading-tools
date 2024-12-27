@@ -202,7 +202,7 @@
         // Calcul des impôts avec et sans PFU
         const incomeTaxWithPFU = incomeTaxWithtoutRealizedCessionsAfterDecote;
         const incomeTaxWithIR = incomeTaxWithRealizedCessionsAfterDecote;
-        const socialTaxWithIR = PFU_PS_RATE * realizedCessions;
+        const socialTaxWithIR = calculatePFU(1).psPortion * realizedCessions;
 
         // Calcul des pourcentages
         const incomeTaxWithPFUPercentage =
@@ -251,7 +251,7 @@
           2
         )} €</li>
         </ul>
-        
+
         <p><strong>Conclusion :</strong> ${
           totalTaxWithPFU < totalTaxWithIR
             ? "L'imposition avec la Flat Tax est plus avantageuse."

@@ -423,29 +423,34 @@ function calculateSocialContributionsForAssimilatedEmployeeFromGrossIncome(
 // =====================================================================================================================
 
 // https://www.economie.gouv.fr/particuliers/prelevement-forfaitaire-unique-pfu
-const PFU_RATE = 0.3;
-const PFU_IR_RATE = 0.128;
-const PFU_PS_RATE = 0.172;
+const PFU_RATE = [
+  { key: "Impôt sur le revenu", value: 0.128 },
+  { key: "Cotisations sociales", value: 0.172 },
+];
 
 function calculatePFU(gain, totalInvestment = 0, totalPortfolio = 0) {
   let totalPFU = 0;
   let irPortion = 0;
   let psPortion = 0;
 
+  const pfu_ir_rate = PFU_RATE[0].value;
+  const pfu_ps_rate = PFU_RATE[1].value;
+  const pfu_rate = pfu_ir_rate + pfu_ps_rate;
+
   if (totalInvestment === 0 || totalPortfolio === 0) {
-    totalPFU = gain * PFU_RATE;
-    irPortion = gain * PFU_IR_RATE;
-    psPortion = gain * PFU_PS_RATE;
+    totalPFU = gain * pfu_rate;
+    irPortion = gain * pfu_ir_rate;
+    psPortion = gain * pfu_ps_rate;
   } else {
     const taxableAmount = gain - totalInvestment * (gain / totalPortfolio);
-    totalPFU = taxableAmount * PFU_RATE;
-    irPortion = taxableAmount * PFU_IR_RATE;
-    psPortion = taxableAmount * PFU_PS_RATE;
+    totalPFU = taxableAmount * pfu_rate;
+    irPortion = taxableAmount * pfu_ir_rate;
+    psPortion = taxableAmount * pfu_ps_rate;
   }
 
   return {
-    totalPFU: totalPFU,
-    irPortion: irPortion,
-    psPortion: psPortion,
+    totalPFU,
+    irPortion,
+    psPortion,
   };
 }
