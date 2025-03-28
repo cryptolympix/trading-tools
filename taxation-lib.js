@@ -19,11 +19,11 @@ function calculateDecote(tax, familyQuotient = 1) {
 
 // https://www.economie.gouv.fr/particuliers/tranches-imposition-impot-revenu
 const TAX_RATES_IR = [
-  { min: 0, max: 11294, rate: 0 },
-  { min: 11_294, max: 28_797, rate: 0.11 },
-  { min: 28_797, max: 82_341, rate: 0.3 },
-  { min: 82_342, max: 177_106, rate: 0.41 },
-  { min: 177_106, max: Infinity, rate: 0.45 },
+  { min: 0, max: 11_497, rate: 0 },
+  { min: 11_498, max: 29_315, rate: 0.11 },
+  { min: 29_316, max: 83_823, rate: 0.3 },
+  { min: 83_824, max: 180_294, rate: 0.41 },
+  { min: 180_295, max: Infinity, rate: 0.45 },
 ];
 
 function calculateIR(profit, familyQuotient = 1) {
